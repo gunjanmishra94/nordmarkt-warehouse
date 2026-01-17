@@ -11,6 +11,8 @@ renamed as (
         {{ to_utc_timestamp('order_date') }} as order_date_utc,
         currency,
         status,
+        shipping_amount_local,
+        discount_amount_local,
         _dlt_load_id,
         _dlt_id
     from source
@@ -31,6 +33,8 @@ select
     customer_id,
     order_date_utc,
     currency,
-    status
+    status,
+    shipping_amount_local,
+    discount_amount_local
 from deduped
 where _rn = 1

@@ -70,6 +70,10 @@ models:
         description: "Currency the order was charged in: EUR, or CHF for customers based in CH."
       - name: status
         description: "Current lifecycle status: placed, shipped, delivered, cancelled or refunded."
+      - name: shipping_amount_local
+        description: Shipping fee as charged, in the order's currency (see `currency`) — not yet converted to EUR.
+      - name: discount_amount_local
+        description: Discount applied at checkout, in the order's currency (see `currency`) — not yet converted to EUR. Zero for most orders.
 
   - name: stg_order_lines
     description: One row per product within an order (order-line grain, not order grain).

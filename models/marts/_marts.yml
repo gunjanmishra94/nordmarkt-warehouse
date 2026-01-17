@@ -1,0 +1,161 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: One row per calendar day, 2015-01-01 through 2031-12-31. Built with dbt_utils.date_spine.
+    columns:
+      - name: date_day
+        description: The calendar date this row represents.
+        tests: [unique, not_null]
+      - name: calendar_year
+        description: Calendar year of date_day.
+      - name: calendar_month
+        description: Calendar month (1-12) of date_day.
+      - name: day_of_month
+        description: Day of the month (1-31).
+      - name: iso_day_of_week
+        description: ISO day of week, 1 (Monday) through 7 (Sunday).
+      - name: day_name
+        description: Day of week as a name, e.g. "Monday".
+      - name: is_weekend
+        description: True for Saturday and Sunday.
+      - name: fiscal_year
+        description: Fiscal year. Kiezkauf's fiscal year is assumed to match the calendar year.
+      - name: fiscal_quarter
+        description: Fiscal quarter (1-4), derived from month assuming a calendar-aligned fiscal year.
+      - name: is_public_holiday_de
+        description: True if this date is a statutory public holiday in at least one German federal state.
+      - name: holiday_name
+        description: Name of the holiday on this date, if any. Null on non-holidays. If more than one holiday falls on the same date, an arbitrary one is shown here — see dim_public_holiday_de for the full detail.
+      - name: public_holiday_states_observing
+        description: Number of German federal states (0-16) that observe a public holiday on this date.
+
+  - name: dim_public_holiday_de
+    description: >
+      One row per holiday_date x federal_state for German public holidays.
+      Kept separate from dim_date (which stays one row per day) so the date
+      dimension doesn't have to explode to a per-state grain. See
+      DECISIONS.md for the simplifications behind which states are assigned
+      to which regional holidays.
+    columns:
+      - name: holiday_date
+        description: Date the holiday falls on.
+        tests: [not_null]
+      - name: holiday_name
+        description: German name of the holiday, e.g. "Tag der Deutschen Einheit".
+        tests: [not_null]
+      - name: federal_state
+        description: ISO 3166-2:DE code of the federal state observing this holiday, e.g. DE-BY for Bayern.
+        tests: [not_null]
+      - name: nationwide
+        description: True if this holiday is observed in all 16 federal states.
+
+  - name: dim_product
+    description: One row per product.
+    columns:
+      - name: product_id
+        description: Surrogate key assigned when the product was added to the catalog.
+        tests: [unique, not_null]
+      - name: name
+        description: Product display name.
+      - name: category
+        description: One of the eight top-level catalog categories.
+      - name: supplier
+        description: Supplier the product is sourced from.
+      - name: price_eur
+        description: Current list price in EUR.
+      - name: price_band
+        description: "Coarse price tier derived from price_eur: budget (<€25), mid (<€100) or premium (>=€100)."
+      - name: created_at_utc
+        description: Timestamp the product was added to the catalog, converted to UTC.
+
+  - name: dim_customer
+    description: >
+      One row per customer per version of their address/tier (Type 2 SCD,
+      sourced from the dim_customer_snapshot dbt snapshot). A customer whose
+      address and tier have never changed has exactly one row.
+    columns:
+      - name: customer_id
+        description: Customer's surrogate key. Not unique alone in this table — see the customer_id/valid_from test below.
+        tests: [not_null]
+      - name: first_name
+        description: Customer's first name as given at signup.
+      - name: last_name
+        description: Customer's last name as given at signup.
+      - name: email
+        description: Customer's email address at signup.
+      - name: country
+        description: "Country the customer signed up from: DE, AT or CH."
+      - name: city
+        description: City on this version of the customer's address.
+      - name: address_line
+        description: Street and house number on this version of the customer's address.
+      - name: postal_code
+        description: Postal code on this version of the customer's address.
+      - name: tier
+        description: "Subscription tier on this version of the record: basic, plus or premium."
+      - name: signup_date
+        description: Calendar date the customer created their account. Does not change between versions.
+      - name: valid_from
+        description: Timestamp this version of the customer record became current.
+        tests: [not_null]
+      - name: valid_to
+        description: Timestamp this version stopped being current. Null for the current version.
+      - name: is_current
+        description: True for exactly one row per customer_id — the version that's current now.
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [customer_id, valid_from]
+
+  - name: fct_order_lines
+    description: >
+      One row per order line, i.e. one product within one order (order-line
+      grain, not order grain — see README.md for why). Shipping and discount
+      are allocated across an order's lines proportionally by gross value;
+      tests/assert_*_allocation_sums_correctly.sql prove the allocation adds
+      back up to the order-level amount actually charged.
+    columns:
+      - name: order_line_id
+        description: Surrogate key for the order/product combination.
+        tests: [unique, not_null]
+      - name: order_id
+        description: Order this line belongs to.
+        tests:
+          - not_null
+      - name: product_id
+        description: Product sold on this line.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_product')
+                field: product_id
+      - name: customer_id
+        description: Customer who placed the order this line belongs to.
+        tests: [not_null]
+      - name: order_date
+        description: Calendar date the order was placed (UTC), joinable to dim_date.date_day.
+        tests: [not_null]
+      - name: order_date_utc
+        description: Timestamp the order was placed, converted to UTC.
+      - name: order_status
+        description: "Lifecycle status of the order this line belongs to: placed, shipped, delivered, cancelled or refunded."
+      - name: currency
+        description: Currency the order was charged in. Every EUR amount in this table has already been converted from this if it was CHF.
+      - name: quantity
+        description: Number of units of this product on this line.
+      - name: unit_price_eur
+        description: Catalog price per unit in EUR at the time of sale.
+      - name: gross_amount_eur
+        description: quantity * unit_price_eur, in EUR, before any shipping or discount allocation.
+      - name: order_shipping_amount_eur
+        description: Total shipping charged on the whole order, converted to EUR. Repeated on every line of the order.
+      - name: order_discount_amount_eur
+        description: Total discount applied to the whole order, converted to EUR. Repeated on every line of the order.
+      - name: allocated_shipping_eur
+        description: This line's share of order_shipping_amount_eur, proportional to its share of the order's gross value.
+      - name: allocated_discount_eur
+        description: This line's share of order_discount_amount_eur, proportional to its share of the order's gross value.
+      - name: net_revenue_eur
+        description: gross_amount_eur minus allocated_discount_eur. Shipping is intentionally excluded — it isn't product revenue.
