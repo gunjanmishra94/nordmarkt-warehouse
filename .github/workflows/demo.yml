@@ -1,0 +1,76 @@
+name: Demo site
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 4 * * *" # nightly, so the site never looks stale
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DBT_PROFILES_DIR: ./
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Generate the demo dataset
+        run: uv run python generator/generate.py --profile demo --seed 42
+
+      - name: Load raw data
+        run: uv run python pipeline/load.py --target duckdb
+
+      - name: Install dbt packages
+        run: uv run dbt deps
+
+      - name: Build the warehouse (baseline extract)
+        run: uv run dbt build --target duckdb
+
+      # dim_customer's Type-2 history needs two real extracts to snapshot a
+      # diff between — see DECISIONS.md. This simulates the second one.
+      - name: Simulate a later day for a slice of customers
+        run: uv run python generator/mutate_customers.py --seed 43
+
+      - name: Reload and rebuild (captures the customer snapshot diff)
+        run: |
+          uv run python pipeline/load.py --target duckdb
+          uv run dbt build --target duckdb
+
+      - name: Generate dbt docs
+        run: uv run dbt docs generate --target duckdb --static
+
+      - name: Assemble the site
+        run: |
+          mkdir -p site
+          cp target/static_index.html site/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

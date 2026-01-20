@@ -114,7 +114,13 @@ models:
       grain, not order grain — see README.md for why). Shipping and discount
       are allocated across an order's lines proportionally by gross value;
       tests/assert_*_allocation_sums_correctly.sql prove the allocation adds
-      back up to the order-level amount actually charged.
+      back up to the order-level amount actually charged. Incremental —
+      reprocesses a trailing lookback window on every run (see DECISIONS.md).
+    tests:
+      - dbt_expectations.expect_table_row_count_to_be_between:
+          arguments:
+            min_value: 10000
+            max_value: 200000
     columns:
       - name: order_line_id
         description: Surrogate key for the order/product combination.
@@ -145,6 +151,11 @@ models:
         description: Currency the order was charged in. Every EUR amount in this table has already been converted from this if it was CHF.
       - name: quantity
         description: Number of units of this product on this line.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+                max_value: 5
       - name: unit_price_eur
         description: Catalog price per unit in EUR at the time of sale.
       - name: gross_amount_eur
@@ -159,3 +170,64 @@ models:
         description: This line's share of order_discount_amount_eur, proportional to its share of the order's gross value.
       - name: net_revenue_eur
         description: gross_amount_eur minus allocated_discount_eur. Shipping is intentionally excluded — it isn't product revenue.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: -25
+                max_value: 3000
+
+  - name: fct_order_fulfilment
+    description: >
+      One row per order, tracking it through its lifecycle (accumulating
+      snapshot): placed -> shipped -> delivered -> refunded. No "picked"
+      stage — the generator never produces one (see DECISIONS.md).
+      Incremental, reprocessing a trailing lookback window on recorded_at
+      (when events were recorded, not when they happened) so late-arriving
+      shipment/refund events still get picked up.
+    columns:
+      - name: order_id
+        description: The order this fulfilment record tracks.
+        tests: [unique, not_null]
+      - name: customer_id
+        description: Customer who placed the order.
+        tests: [not_null]
+      - name: order_status
+        description: "Order's current lifecycle status: placed, shipped, delivered, cancelled or refunded."
+      - name: placed_at
+        description: When the order was placed, in UTC.
+        tests: [not_null]
+      - name: shipped_at
+        description: When the order's shipment was first recorded as shipped or delivered, in UTC. Null if it hasn't shipped yet.
+      - name: delivered_at
+        description: When the order's shipment was recorded as delivered, in UTC. Null if not yet delivered.
+      - name: refunded_at
+        description: When the first refund on this order actually happened, in UTC. Null if never refunded.
+      - name: last_recorded_at
+        description: Latest of placed_at and every recorded_at that fed this row — the watermark the incremental lookback window compares against.
+      - name: is_refunded
+        description: True if this order has at least one refund.
+      - name: hours_placed_to_shipped
+        description: Hours between placed_at and shipped_at. Null until shipped.
+      - name: hours_shipped_to_delivered
+        description: Hours between shipped_at and delivered_at. Null until delivered.
+      - name: hours_placed_to_delivered
+        description: Hours between placed_at and delivered_at. Null until delivered.
+
+  - name: agg_daily_revenue
+    description: >
+      One row per order_date, aggregated purely to give dbt_expectations a
+      distribution to bound — a sanity check, not real anomaly detection
+      (see DECISIONS.md).
+    columns:
+      - name: order_date
+        description: Calendar date of the orders aggregated into this row.
+        tests: [unique, not_null]
+      - name: order_count
+        description: Distinct orders placed on this date.
+      - name: net_revenue_eur
+        description: Sum of fct_order_lines.net_revenue_eur for this date.
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 100000

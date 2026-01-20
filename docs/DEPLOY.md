@@ -20,33 +20,23 @@ They want different things, and only building for one of them is the usual mista
 
 ## How the public demo works
 
-Evidence is the piece that makes a free permanent demo possible, and it's the reason it beat Metabase in [STACK.md](STACK.md). Evidence compiles to **static files**. Query results ship to the browser as parquet, and DuckDB compiled to WebAssembly runs them client-side. Filters and drilldowns work. There is no backend and no database server.
+This section originally described Evidence compiling to static files with DuckDB-via-WASM running entirely in the browser — no backend, deployable to GitHub Pages for free. That's no longer how Evidence works; see DECISIONS.md for the full story. The static, no-login version is now "Legacy Evidence" and deprecated; the current "Evidence Studio" needs a live server-side connection (here, MotherDuck) and its own account, and publishes itself once the repo's connected in its UI (`evidence launch` / `evidence link`) — it is **not** part of this repo's own build or GitHub Pages site.
 
-That turns the entire warehouse into a build step:
+So the split is:
+
+- **This repo's own GitHub Pages site** (below) is now just the dbt documentation site, including the lineage graph — arguably the more important of the two anyway, since documentation quality *is* the deliverable. It's where someone sees that every mart column has a real description.
+- **The Evidence Studio dashboard** is hosted by Evidence Studio itself once connected, at whatever URL it assigns. Linked from the README once that's set up; not built by our CI.
 
 ```
 GitHub Actions (on push, and nightly)
-  generator → dlt → dbt build → dbt docs → evidence build → static site → GitHub Pages
+  generator → dlt → dbt build (twice, for real snapshot history) → dbt docs → GitHub Pages
 ```
-
-One workflow produces one site with two things on it:
-
-- `/` — the Evidence dashboard
-- `/docs` — the dbt documentation site, including the lineage graph
-
-For this project the docs URL is arguably the more important of the two, because documentation quality *is* the deliverable. It's where someone sees that every mart column has a real description.
 
 ### Why GitHub Pages and not Vercel
 
 I originally leaned Vercel. Once the site is built inside GitHub Actions, though, the host only needs to accept a folder, and Pages does that with no extra account, no extra token, and no third-party service in the loop. Both URLs come from the repo itself.
 
-The one cost is that Pages serves from `username.github.io/kiezkauf-warehouse/`, a subdirectory, so Evidence needs its base path configured. That's the `EVIDENCE_BASE_PATH` line in the workflow below. If it gives trouble, or you want a cleaner URL, Cloudflare Pages takes a prebuilt folder in one command:
-
-```bash
-npx wrangler pages deploy ./site --project-name kiezkauf
-```
-
-Netlify and Vercel both have equivalents. The build steps don't change, only the last one.
+The one cost is that Pages serves from `username.github.io/kiezkauf-warehouse/`, a subdirectory. dbt's static docs don't care about base paths, so that's no longer a concern now that the dashboard isn't part of this build.
 
 ---
 
@@ -78,7 +68,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DBT_PROFILES_DIR: ./
-      EVIDENCE_BASE_PATH: /kiezkauf-warehouse
     steps:
       - uses: actions/checkout@v4
 
@@ -114,24 +103,10 @@ jobs:
       - name: Generate dbt docs
         run: uv run dbt docs generate --target duckdb --static
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: dashboards/package-lock.json
-
-      - name: Build the dashboard
-        working-directory: dashboards
-        run: |
-          npm ci
-          npm run sources
-          npm run build
-
       - name: Assemble the site
         run: |
-          mkdir -p site/docs
-          cp -r dashboards/build/* site/
-          cp target/static_index.html site/docs/index.html
+          mkdir -p site
+          cp target/static_index.html site/index.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
@@ -252,7 +227,7 @@ clean:
 	rm -rf target dbt_packages data/generated data/*.duckdb*
 ```
 
-There's no `dash` target yet — the Evidence dashboard doesn't exist until Stage 3.
+The Evidence dashboard (`dashboards/`) isn't driven by this Makefile — it has its own CLI now (`cd dashboards && evidence dev`), and needs a `connection.yaml` (copied from `connection.example.yaml`, filled in with a MotherDuck token) and `evidence login` before it does anything. See DECISIONS.md.
 
 So the README instruction is two lines:
 
@@ -271,13 +246,10 @@ Add a devcontainer and reviewers get an **Open in GitHub Codespaces** button. Th
 {
   "name": "Kiezkauf Warehouse",
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": { "version": "20" }
-  },
-  "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && ~/.local/bin/uv sync",
+  "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && ~/.local/bin/uv sync && curl -fsSL https://evidence.studio/install.sh | sh",
   "forwardPorts": [3000, 8080],
   "portsAttributes": {
-    "3000": { "label": "Evidence dashboard" },
+    "3000": { "label": "Evidence dashboard (needs evidence login)" },
     "8080": { "label": "dbt docs" }
   },
   "customizations": {
@@ -298,13 +270,13 @@ Add a devcontainer and reviewers get an **Open in GitHub Codespaces** button. Th
 
 The generator must be seeded, and the seed must be committed.
 
-If the numbers on the public dashboard don't match what a reviewer gets when they run it locally, the project looks broken, and they won't email to ask why. `--seed 42` appears in every command above for exactly this reason.
+If the numbers on the public dbt docs / dashboard don't match what a reviewer gets when they run it locally, the project looks broken, and they won't email to ask why. `--seed 42` appears in every command above for exactly this reason.
 
 ---
 
 ## Two dataset sizes
 
-Evidence ships parquet to the browser, so a large dataset makes the public page slow. But Snowflake cost and performance numbers are meaningless at small volumes.
+A large dataset makes CI and the dev loop slow for no benefit. But Snowflake cost and performance numbers are meaningless at small volumes.
 
 Two profiles in the generator solve it:
 

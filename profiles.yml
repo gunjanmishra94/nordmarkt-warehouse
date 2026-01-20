@@ -17,3 +17,13 @@ kiezkauf:
       warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'WH_XS') }}"
       schema: staging
       threads: 4
+
+    # MotherDuck (hosted DuckDB) — feeds the Evidence Studio dashboard, since
+    # Evidence has no local-file DuckDB connector anymore. Reads the service
+    # token from the MOTHERDUCK_TOKEN env var (the duckdb client picks it up
+    # itself); see DECISIONS.md for why this target exists.
+    motherduck:
+      type: duckdb
+      path: "md:{{ env_var('MOTHERDUCK_DATABASE', 'kiezkauf') }}"
+      schema: main
+      threads: 4

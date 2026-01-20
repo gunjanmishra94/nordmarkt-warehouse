@@ -84,6 +84,10 @@ def build_destination(target: str):
                 .read_text(),
             }
         )
+    if target == "motherduck":
+        database = os.environ.get("MOTHERDUCK_DATABASE", "kiezkauf")
+        token = os.environ["MOTHERDUCK_TOKEN"]
+        return dlt.destinations.motherduck(credentials=f"md:///{database}?token={token}")
     raise ValueError(f"Unknown target: {target}")
 
 
@@ -96,7 +100,7 @@ def fx_date_range(data_dir: Path) -> tuple[str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Load generated Kiezkauf data into the warehouse.")
-    parser.add_argument("--target", choices=["duckdb", "snowflake"], default="duckdb")
+    parser.add_argument("--target", choices=["duckdb", "snowflake", "motherduck"], default="duckdb")
     parser.add_argument("--data-dir", type=Path, default=Path("data/generated"))
     args = parser.parse_args()
 

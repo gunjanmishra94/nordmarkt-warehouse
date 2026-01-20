@@ -4,12 +4,33 @@
 -- then allocated across that order's lines by each line's share of gross
 -- value. tests/assert_*_allocation_sums_correctly.sql prove the allocation
 -- adds back up to the order-level amount.
+--
+-- Incremental: reprocesses a trailing lookback window of order_date_utc on
+-- every run (not just rows newer than the last max), so upstream rows that
+-- arrive late still get picked up. See DECISIONS.md.
+{{
+    config(
+        materialized='incremental',
+        unique_key='order_line_id',
+        incremental_strategy='delete+insert',
+    )
+}}
+
 with lines as (
     select * from {{ ref('stg_order_lines') }}
 ),
 
 orders as (
     select * from {{ ref('stg_orders') }}
+    {% if is_incremental() %}
+        where order_date_utc > (
+            select
+                coalesce(
+                    max(prior_run.order_date_utc), timestamp '1900-01-01'
+                )
+            from {{ this }} as prior_run
+        ) - interval '{{ var("late_arrival_lookback_days", 7) }} days'
+    {% endif %}
 ),
 
 fx_rates as (

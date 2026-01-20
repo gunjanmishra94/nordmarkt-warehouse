@@ -44,13 +44,19 @@ Tracks what's actually been built against README.md's three-stage plan. Update t
 
 ## Stage 3 — Make it real
 
-**Status: not started.**
+**Status: done against DuckDB.** Three items blocked on external accounts, not on remaining build work.
 
-- [ ] `fct_order_lines` converted to incremental, with a late-arrival lookback window and backfill macro
-- [ ] `fct_order_fulfilment` as an accumulating snapshot
-- [ ] Business-rule singular tests (refunds ≤ order value, no delivery before order date, no negative quantities)
-- [ ] `dbt_expectations` distribution tests
-- [ ] Snowflake run: credit cost, warehouse sizing, clustering keys, `ACCOUNT_USAGE` cost attribution (depends on Stage 1's Snowflake gap being closed first)
-- [ ] Publish dbt docs + dashboard to GitHub Pages per docs/DEPLOY.md
-- [ ] Three Evidence pages: revenue overview, category trends, fulfilment timing
-- [ ] README section explaining what the numbers mean
+- [x] `fct_order_lines` converted to incremental (`delete+insert`, trailing lookback window on `order_date_utc`)
+- [x] `fct_order_fulfilment` as an accumulating snapshot (placed → shipped → delivered → refunded; no "picked" stage — see DECISIONS.md), incremental with a lookback on `recorded_at`
+- [x] `macros/backfill_incremental_model.sql` — generic backfill for either incremental model
+- [x] Business-rule singular tests: `assert_refunds_never_exceed_order_value`, `assert_no_delivery_before_order_date`, `assert_no_negative_quantities`
+- [x] `dbt_expectations` distribution tests on `fct_order_lines` and a new `agg_daily_revenue` (row count + value bounds; a sanity check, not anomaly detection — see DECISIONS.md)
+- [x] README "What the numbers mean" section
+- [x] `DECISIONS.md` — 4 new entries this stage (lookback/backfill design, no-picked-stage, dbt_expectations scope, the Evidence pivot)
+- [ ] Snowflake run: credit cost, warehouse sizing, clustering keys, `ACCOUNT_USAGE` cost attribution — still blocked on a trial account
+- [ ] Publish dbt docs to GitHub Pages — workflow files exist (`.github/workflows/demo.yml`, `ci.yml`, `.devcontainer/devcontainer.json`) but have never run; no GitHub remote yet
+- [~] Three Evidence pages (revenue overview, category trends, fulfilment timing) — written in `dashboards/pages/`, real current Markdoc syntax confirmed via `evidence docs component` (no login needed for that), and `evidence validate` passes. **Not verified live**: Evidence pivoted from a static/no-login tool to "Evidence Studio" mid-project, which needs `evidence login` + a MotherDuck connection (`dashboards/connection.example.yaml`) neither of which can be completed without a person's credentials. See DECISIONS.md.
+
+**Verified:** clean-tree `make demo` builds both passes green (72/72 checks each); manually inserted a genuinely late-arriving shipment (recorded_at past the existing watermark) and confirmed a plain `dbt run --select fct_order_fulfilment` (no `--full-refresh`) picked it up; exercised the backfill macro end-to-end (delete a window, confirm empty, reprocess with a widened lookback, confirm restored).
+
+**Also fixed along the way:** `docs/DEPLOY.md`'s entire "how the public demo works" section and its documented Makefile block predated Evidence's pivot and described a deployment model that no longer exists — rewritten to match reality (dbt docs only on our GitHub Pages site; the dashboard publishes itself via Evidence Studio once connected).

@@ -1,0 +1,19 @@
+{
+  "name": "Kiezkauf Warehouse",
+  "image": "mcr.microsoft.com/devcontainers/python:3.12",
+  "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && ~/.local/bin/uv sync && curl -fsSL https://evidence.studio/install.sh | sh",
+  "forwardPorts": [3000, 8080],
+  "portsAttributes": {
+    "3000": { "label": "Evidence dashboard (needs evidence login)" },
+    "8080": { "label": "dbt docs" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "innoverio.vscode-dbt-power-user",
+        "dorzey.vscode-sqlfluff",
+        "ms-python.python"
+      ]
+    }
+  }
+}
