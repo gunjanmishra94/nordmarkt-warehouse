@@ -1,6 +1,6 @@
 # Kiezkauf Warehouse
 
-An analytics warehouse for a fictional Berlin online marketplace, built with dbt on Snowflake.
+An analytics warehouse for a fictional Berlin online marketplace, built with dbt on DuckDB.
 
 This repo is a portfolio project. It exists to show that I can take raw, messy operational data and turn it into a small set of clean, well-documented tables that a business person can actually query and trust.
 
@@ -105,7 +105,7 @@ Three stages. Each stage ends with something that runs, so the project is never 
 Get data flowing end to end, even if it's thin.
 
 - [x] Set up the repo: dbt project, folder structure, naming conventions written down
-- [ ] Configure two targets so the project runs on both DuckDB (local, free, fast) and Snowflake (the real thing). Develop on DuckDB, prove it on Snowflake.
+- [x] Configure a `duckdb` target so the project runs locally, free, with no account (Snowflake was considered and dropped — see DECISIONS.md)
 - [x] Write the data generator: customers, products, orders, order lines, shipments, refunds
 - [x] Add the deliberate mess: duplicate order IDs, events arriving days late, mixed timezones, one renamed column partway through history
 - [x] Load it with `dlt`, plus daily EUR/CHF rates from a public API
@@ -113,7 +113,7 @@ Get data flowing end to end, even if it's thin.
 - [x] Add basic tests: primary keys unique and not null, foreign keys valid
 - [x] Wire up SQLFluff and pre-commit so formatting is never a discussion
 
-**Done when:** `dbt build` runs green against DuckDB from a clean clone. **Met** — `make demo` builds 7 staging models and passes all 24 schema tests. The `snowflake` target is configured in `profiles.yml` but unproven, since there's no trial account yet.
+**Done when:** `dbt build` runs green against DuckDB from a clean clone. **Met** — `make demo` builds 7 staging models and passes all 24 schema tests.
 
 ### Stage 2 — The star schema
 
@@ -139,12 +139,11 @@ The difference between a demo and something you'd put in production.
 - [x] Build `fct_order_fulfilment` as an accumulating snapshot, tracking each order through placed → picked → shipped → delivered with durations between each step
 - [x] Add business-rule tests: refunds never exceed order value, no delivery date before its order date, no negative quantities
 - [x] Add distribution tests with `dbt_expectations` to catch the day revenue silently triples
-- [ ] Run the whole thing on Snowflake, note the credit cost, tune the warehouse size
 - [ ] Publish dbt docs and the dashboard to GitHub Pages (see [DEPLOY.md](docs/DEPLOY.md))
 - [x] Build three Evidence pages: revenue overview, category trends, fulfilment timing
 - [x] Write the README section explaining what the numbers mean
 
-**Done when:** a stranger can clone the repo, run it locally, read the docs, and understand every table without asking me a question. **Mostly met** — everything DuckDB-based is real and verified. Two things need an account only a person can create: the Snowflake run, and logging the Evidence Studio dashboard in (`evidence login`) against a MotherDuck token — see DECISIONS.md. The GitHub Actions workflows exist (`.github/workflows/`) but haven't actually run, since this repo has no GitHub remote yet.
+**Done when:** a stranger can clone the repo, run it locally, read the docs, and understand every table without asking me a question. **Mostly met** — everything DuckDB-based is real and verified. One thing needs an account only a person can create: logging the Evidence Studio dashboard in (`evidence login`) against a MotherDuck token — see DECISIONS.md. The GitHub Actions workflows exist (`.github/workflows/`) but haven't actually run, since this repo has no GitHub remote yet.
 
 ---
 
@@ -158,7 +157,7 @@ A few rules I'm holding myself to, because they're what the job actually demands
 
 **Business rules get tested, not just schemas.** Checking that a column is unique is easy and proves little. Checking that refunds never exceed the original order value proves I understood the domain.
 
-**The repo must run on a laptop.** Snowflake trials expire. Anyone should be able to clone this and see it work in under two minutes, with no account and no credentials.
+**The repo must run on a laptop.** Anyone should be able to clone this and see it work in under two minutes, with no account and no credentials.
 
 ---
 
@@ -173,8 +172,6 @@ uv run dbt docs generate && uv run dbt docs serve
 ```
 
 Or, equivalently: `make demo`.
-
-For Snowflake, copy `.env.example` to `.env`, fill in the credentials, and swap `--target duckdb` for `--target snowflake`.
 
 ---
 
@@ -204,4 +201,4 @@ Terms that show up in the code, in plain words.
 
 Stages 1 through 3 are functionally done against DuckDB: `make demo` generates, loads (twice, for real snapshot/lookback history), and builds the full warehouse — star schema, incremental facts, business-rule and distribution tests, all passing. Revenue-by-category-by-month is answerable in one `SELECT`.
 
-Three things are configured but unproven, each blocked on an account only a person can create, not on anything left to build: the Snowflake run (trial account), the GitHub Pages publish (no GitHub remote yet), and the Evidence Studio dashboard (needs `evidence login` plus a MotherDuck token — Evidence changed products mid-project; see DECISIONS.md). Everything else runs locally with no account.
+Two things are configured but unproven, each blocked on an account only a person can create, not on anything left to build: the GitHub Pages publish (no GitHub remote yet), and the Evidence Studio dashboard (needs `evidence login` plus a MotherDuck token — Evidence changed products mid-project; see DECISIONS.md). Everything else runs locally with no account.

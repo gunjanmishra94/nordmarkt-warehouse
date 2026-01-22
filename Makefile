@@ -1,4 +1,4 @@
-.PHONY: demo generate deps load snapshot mutate build docs full snowflake clean
+.PHONY: demo generate deps load snapshot mutate build docs full clean
 
 export DBT_PROFILES_DIR := .
 
@@ -38,11 +38,6 @@ docs:
 
 full:
 	uv run python generator/generate.py --profile full --seed 42
-
-snowflake:
-	uv run python pipeline/load.py --target snowflake
-	uv run dbt snapshot --target snowflake
-	uv run dbt build --target snowflake
 
 clean:
 	rm -rf target dbt_packages data/generated data/*.duckdb*
