@@ -70,9 +70,9 @@ def fx_rates_resource(start_date: str, end_date: str):
 
 def build_destination(target: str):
     if target == "duckdb":
-        return dlt.destinations.duckdb("data/kiezkauf.duckdb")
+        return dlt.destinations.duckdb("data/nordmarkt.duckdb")
     if target == "motherduck":
-        database = os.environ.get("MOTHERDUCK_DATABASE", "kiezkauf")
+        database = os.environ.get("MOTHERDUCK_DATABASE", "nordmarkt")
         token = os.environ["MOTHERDUCK_TOKEN"]
         return dlt.destinations.motherduck(credentials=f"md:///{database}?token={token}")
     raise ValueError(f"Unknown target: {target}")
@@ -86,13 +86,15 @@ def fx_date_range(data_dir: Path) -> tuple[str, str]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Load generated Kiezkauf data into the warehouse.")
+    parser = argparse.ArgumentParser(
+        description="Load generated Nordmarkt data into the warehouse."
+    )
     parser.add_argument("--target", choices=["duckdb", "motherduck"], default="duckdb")
     parser.add_argument("--data-dir", type=Path, default=Path("data/generated"))
     args = parser.parse_args()
 
     pipeline = dlt.pipeline(
-        pipeline_name="kiezkauf",
+        pipeline_name="nordmarkt",
         destination=build_destination(args.target),
         dataset_name="raw",
     )

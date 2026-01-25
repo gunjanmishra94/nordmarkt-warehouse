@@ -1,5 +1,5 @@
 [project]
-name = "kiezkauf-warehouse"
+name = "nordmarkt-warehouse"
 version = "0.1.0"
 description = "Analytics warehouse for a fictional Berlin marketplace, built with dbt on DuckDB."
 requires-python = ">=3.12"

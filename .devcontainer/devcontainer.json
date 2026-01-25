@@ -1,5 +1,5 @@
 {
-  "name": "Kiezkauf Warehouse",
+  "name": "Nordmarkt Warehouse",
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
   "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && ~/.local/bin/uv sync && curl -fsSL https://evidence.studio/install.sh | sh",
   "forwardPorts": [3000, 8080],

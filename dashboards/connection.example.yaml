@@ -3,4 +3,4 @@
 # DECISIONS.md for why MotherDuck is the connector here.
 type: motherduck
 token: your-motherduck-service-token
-database: kiezkauf
+database: nordmarkt

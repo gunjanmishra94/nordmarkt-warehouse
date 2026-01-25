@@ -1,4 +1,4 @@
-"""Invents Kiezkauf's operational history and writes it to Parquet.
+"""Invents Nordmarkt's operational history and writes it to Parquet.
 
 Deliberately messy, on purpose (see README.md "How it fits together"):
 
@@ -76,7 +76,7 @@ DISCOUNT_RANGE = {
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Generate Kiezkauf's messy operational history.")
+    parser = argparse.ArgumentParser(description="Generate Nordmarkt's messy operational history.")
     parser.add_argument("--years", type=int, default=3)
     parser.add_argument("--profile", choices=sorted(PROFILES), default="demo")
     parser.add_argument("--seed", type=int, default=42)

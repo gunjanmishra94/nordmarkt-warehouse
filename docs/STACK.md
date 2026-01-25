@@ -87,7 +87,7 @@ The risk is that generated data reads as fake and unimpressive. The defence is t
 
 An embedded analytical database. Think SQLite, but columnar and vectorised for aggregate queries instead of row-at-a-time transactional ones. It runs inside the Python process. No server, no port, no connection pool.
 
-The entire warehouse is one file, `data/kiezkauf.duckdb`. Delete it and the warehouse is gone; copy it and you've cloned the warehouse. It's gitignored, because it's a binary that changes on every run and `make demo` rebuilds it in seconds.
+The entire warehouse is one file, `data/nordmarkt.duckdb`. Delete it and the warehouse is gone; copy it and you've cloned the warehouse. It's gitignored, because it's a binary that changes on every run and `make demo` rebuilds it in seconds.
 
 For this data it's also plenty of engine: the `full` profile is around 500k order lines, and DuckDB comfortably handles hundreds of millions of rows on a laptop with no network round trip to slow it down.
 
@@ -135,7 +135,7 @@ Docker's job is isolating and networking long-running services. This project has
 
 Adding it would cost real iteration speed, because volume-mounted filesystem I/O on a Mac is slow and every dependency change triggers a rebuild. It would also contradict the two entries below: arguing that Spark is overkill for laptop-sized data, then containerising two CLIs, is not a consistent position.
 
-There is one version of this project where Docker earns its place. If the generator wrote to a real Postgres instance standing in as Kiezkauf's operational database, dlt would be doing genuine replication with watermarks and soft deletes rather than reading files, which is a better story for the ingestion layer. If I add that, it goes in as an optional path — `make demo` stays file-based so the clone-and-run promise holds, and `make demo-postgres` spins up the container for anyone who wants it.
+There is one version of this project where Docker earns its place. If the generator wrote to a real Postgres instance standing in as Nordmarkt's operational database, dlt would be doing genuine replication with watermarks and soft deletes rather than reading files, which is a better story for the ingestion layer. If I add that, it goes in as an optional path — `make demo` stays file-based so the clone-and-run promise holds, and `make demo-postgres` spins up the container for anyone who wants it.
 
 **Airflow or Dagster.** There's nothing to orchestrate yet. One `dbt build` on a schedule is a GitHub Actions cron line, not a reason to stand up a scheduler. Dagster arrives when a later project actually needs asset-level scheduling.
 
