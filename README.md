@@ -6,35 +6,18 @@ This repo is a portfolio project. It exists to show that I can take raw, messy o
 
 ---
 
-## The idea in plain English
+## Why this exists
 
-Imagine a company called **Nordmarkt**. It's an online marketplace selling homeware across Germany, Austria and Switzerland. Customers place orders, orders get shipped (or cancelled, or refunded), customers move house, change their subscription tier, and occasionally pay in Swiss francs instead of euros.
+Nordmarkt sells homeware across Germany, Austria and Switzerland. Customers place orders, orders get shipped, cancelled, or refunded, customers move house, change their subscription tier, and occasionally pay in Swiss francs instead of euros. The raw data is a mess, as raw data always is: events arrive late, the same order sometimes appears twice, timestamps are recorded in three different timezones, and a column got renamed partway through the history with no note left behind.
 
-Nordmarkt's raw data is a mess, as raw data always is. Events arrive late. The same order sometimes appears twice. Timestamps are recorded in three different timezones. Somebody renamed a column six months ago and nobody wrote it down.
-
-The job of this repo is to sit between that mess and the people asking questions like:
+This repo sits between that mess and questions like:
 
 - How much did we sell last month, in euros, excluding refunds?
 - How many customers are actually active right now?
 - Which product categories are growing, and how fast?
-- How long does it take us to go from order placed to parcel delivered?
+- How long does it take to go from order placed to parcel delivered?
 
-Nobody should have to understand the mess to answer those questions. That's the whole point.
-
----
-
-## Why I'm building it
-
-I work as a data engineer and I'm moving into analytics engineering. Those two jobs overlap a lot, but they're judged differently. Data engineering is judged on whether the pipeline runs. Analytics engineering is judged on whether the *numbers are right and people trust them*.
-
-So this project deliberately puts the weight on the second thing. There's a real emphasis on:
-
-- deciding what each table means before writing it
-- writing down *why* each decision was made
-- testing business rules, not just checking for nulls
-- documentation a non-engineer could read
-
-The code being clean is table stakes. The judgement is the deliverable.
+I work as a data engineer and I'm moving into analytics engineering. The two jobs overlap but are judged differently: data engineering is judged on whether the pipeline runs, analytics engineering on whether the numbers are right and people trust them. So this project puts the weight on the second thing — deciding what each table means before writing it, writing down why each decision was made, testing business rules rather than just checking for nulls, documenting things a non-engineer could read. The code being clean is table stakes; the judgement is the deliverable.
 
 ---
 
@@ -124,71 +107,6 @@ Every column has a real description in `models/marts/_marts.yml` — this is the
 
 ---
 
-## The build plan
-
-Three stages. Each stage ends with something that runs, so the project is never in a half-broken state.
-
-### Stage 1 — Foundations
-
-Get data flowing end to end, even if it's thin.
-
-- [x] Set up the repo: dbt project, folder structure, naming conventions written down
-- [x] Configure a `duckdb` target so the project runs locally, free, with no account (Snowflake was considered and dropped — see DECISIONS.md)
-- [x] Write the data generator: customers, products, orders, order lines, shipments, refunds
-- [x] Add the deliberate mess: duplicate order IDs, events arriving days late, mixed timezones, one renamed column partway through history
-- [x] Load it with `dlt`, plus daily EUR/CHF rates from a public API
-- [x] Build the staging layer, one model per source
-- [x] Add basic tests: primary keys unique and not null, foreign keys valid
-- [x] Wire up SQLFluff and pre-commit so formatting is never a discussion
-
-**Done when:** `dbt build` runs green against DuckDB from a clean clone. **Met** — `make demo` builds 7 staging models and passes all 24 schema tests.
-
-### Stage 2 — The star schema
-
-Build the tables people will actually use.
-
-- [x] `dim_date`, including German public holidays by federal state
-- [x] `dim_product`
-- [x] `dim_customer` as a dbt snapshot, tracking address and tier changes over time
-- [x] `fct_order_lines`, with the grain stated explicitly at the top of the model and in the docs
-- [x] Allocate shipping and discounts across lines, with a test proving the allocation sums correctly
-- [x] Convert everything to EUR using the rate that applied *on the order date*, not today's rate
-- [x] Write column-level descriptions for every field in the marts. Every single one.
-- [x] Start `DECISIONS.md` and record the choices made so far
-
-**Done when:** someone can answer "revenue by product category by month, in euros" with a single `SELECT`. **Met** — see `models/marts/_marts.yml` and `DECISIONS.md` for the modelling choices behind it.
-
-### Stage 3 — Make it real
-
-The difference between a demo and something you'd put in production.
-
-- [x] Convert `fct_order_lines` to an incremental model so it doesn't rebuild from scratch every run
-- [x] Handle late-arriving events properly with a lookback window, and write a backfill macro
-- [x] Build `fct_order_fulfilment` as an accumulating snapshot, tracking each order through placed → picked → shipped → delivered with durations between each step
-- [x] Add business-rule tests: refunds never exceed order value, no delivery date before its order date, no negative quantities
-- [x] Add distribution tests with `dbt_expectations` to catch the day revenue silently triples
-- [ ] Publish dbt docs and the dashboard to GitHub Pages (see [DEPLOY.md](docs/DEPLOY.md))
-- [x] Build three Evidence pages: revenue overview, category trends, fulfilment timing
-- [x] Write the README section explaining what the numbers mean
-
-**Done when:** a stranger can clone the repo, run it locally, read the docs, and understand every table without asking me a question. **Mostly met** — everything DuckDB-based is real and verified. One thing needs an account only a person can create: logging the Evidence Studio dashboard in (`evidence login`) against a MotherDuck token — see DECISIONS.md. The GitHub Actions workflows exist (`.github/workflows/`) but haven't actually run, since this repo has no GitHub remote yet.
-
----
-
-## Deliberate constraints
-
-A few rules I'm holding myself to, because they're what the job actually demands.
-
-**Every mart column gets a description.** Not "customer_id — the customer ID". An actual explanation of what it means and when it's null.
-
-**Every non-obvious choice goes in `DECISIONS.md`.** Short entries. What I chose, what I rejected, why. This file matters more than the SQL.
-
-**Business rules get tested, not just schemas.** Checking that a column is unique is easy and proves little. Checking that refunds never exceed the original order value proves I understood the domain.
-
-**The repo must run on a laptop.** Anyone should be able to clone this and see it work in under two minutes, with no account and no credentials.
-
----
-
 ## Running it
 
 ```bash
@@ -227,6 +145,6 @@ Terms that show up in the code, in plain words.
 
 ## Status
 
-Stages 1 through 3 are functionally done against DuckDB: `make demo` generates, loads (twice, for real snapshot/lookback history), and builds the full warehouse — star schema, incremental facts, business-rule and distribution tests, all passing. Revenue-by-category-by-month is answerable in one `SELECT`.
+`make demo` generates the data, loads it (twice, for real snapshot/lookback history), and builds the full warehouse against DuckDB — star schema, incremental facts, business-rule and distribution tests, all passing. Revenue-by-category-by-month is answerable in one `SELECT`. dbt docs and the demo site publish to GitHub Pages automatically on every push to `main`.
 
-Two things are configured but unproven, each blocked on an account only a person can create, not on anything left to build: the GitHub Pages publish (no GitHub remote yet), and the Evidence Studio dashboard (needs `evidence login` plus a MotherDuck token — Evidence changed products mid-project; see DECISIONS.md). Everything else runs locally with no account.
+One thing remains blocked on an account only a person can create, not on anything left to build: the Evidence Studio dashboard needs `evidence login` against a MotherDuck token, since Evidence changed products mid-project — see `DECISIONS.md`. Everything else runs with no account.
