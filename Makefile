@@ -1,4 +1,4 @@
-.PHONY: demo generate deps load snapshot mutate build docs full clean
+.PHONY: demo generate deps load snapshot mutate build docs dashboard full clean
 
 export DBT_PROFILES_DIR := .
 
@@ -35,6 +35,9 @@ build:
 
 docs:
 	uv run dbt docs generate --target duckdb && uv run dbt docs serve
+
+dashboard:
+	cd dashboards && uv run --with-requirements requirements.txt streamlit run app.py
 
 full:
 	uv run python generator/generate.py --profile full --seed 42

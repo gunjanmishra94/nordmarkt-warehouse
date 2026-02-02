@@ -43,7 +43,7 @@ flowchart LR
     FX["Frankfurter API<br/>(daily EUR/CHF rates)"] --> R
     R --> S["Staging<br/>(dbt)"]
     S --> M["Marts<br/>(dbt)"]
-    M --> Dash["Dashboard<br/>(Evidence)"]
+    M --> Dash["Dashboard<br/>(Streamlit)"]
 
     classDef stage fill:#eef,stroke:#446,stroke-width:1px;
     class G,R,S,M,Dash stage;
@@ -57,7 +57,7 @@ flowchart LR
 
 **Marts** — The actual product. A small number of tables shaped so that a business question maps to a single, obvious query. This is where the thinking lives.
 
-**Dashboard** — A handful of Evidence.dev pages proving the marts answer the questions they claim to answer.
+**Dashboard** — A three-page Streamlit app proving the marts answer the questions they claim to answer.
 
 Why each of these tools and not the obvious alternatives: see [STACK.md](docs/STACK.md).
 How it all gets published so people can actually look at it: see [DEPLOY.md](docs/DEPLOY.md).
@@ -117,7 +117,7 @@ uv run dbt build --target duckdb
 uv run dbt docs generate && uv run dbt docs serve
 ```
 
-Or, equivalently: `make demo`.
+Or, equivalently: `make demo`. For the dashboard: `make dashboard` (builds the warehouse itself on first load if `make demo` hasn't already run).
 
 ---
 
@@ -147,4 +147,4 @@ Terms that show up in the code, in plain words.
 
 `make demo` generates the data, loads it (twice, for real snapshot/lookback history), and builds the full warehouse against DuckDB — star schema, incremental facts, business-rule and distribution tests, all passing. Revenue-by-category-by-month is answerable in one `SELECT`. dbt docs and the demo site publish to GitHub Pages automatically on every push to `main`.
 
-One thing remains blocked on an account only a person can create, not on anything left to build: the Evidence Studio dashboard needs `evidence login` against a MotherDuck token, since Evidence changed products mid-project — see `DECISIONS.md`. Everything else runs with no account.
+One thing remains blocked on an account only a person can create, not on anything left to build: the Streamlit dashboard needs to actually be deployed on Streamlit Community Cloud — see `dashboards/README.md`. Everything else, including running the dashboard locally, needs no account.

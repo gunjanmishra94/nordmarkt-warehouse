@@ -20,12 +20,12 @@ They want different things, and only building for one of them is the usual mista
 
 ## How the public demo works
 
-This section originally described Evidence compiling to static files with DuckDB-via-WASM running entirely in the browser — no backend, deployable to GitHub Pages for free. That's no longer how Evidence works; see DECISIONS.md for the full story. The static, no-login version is now "Legacy Evidence" and deprecated; the current "Evidence Studio" needs a live server-side connection (here, MotherDuck) and its own account, and publishes itself once the repo's connected in its UI (`evidence launch` / `evidence link`) — it is **not** part of this repo's own build or GitHub Pages site.
+This section originally described Evidence compiling to static files with DuckDB-via-WASM running entirely in the browser — no backend, deployable to GitHub Pages for free. That's no longer how Evidence works, and Evidence Studio (what replaced it) turned out to have no permanent free tier at all; both it and the MotherDuck connection it required were dropped in favor of a Streamlit dashboard. Full story in DECISIONS.md.
 
 So the split is:
 
-- **This repo's own GitHub Pages site** (below) is now just the dbt documentation site, including the lineage graph — arguably the more important of the two anyway, since documentation quality *is* the deliverable. It's where someone sees that every mart column has a real description.
-- **The Evidence Studio dashboard** is hosted by Evidence Studio itself once connected, at whatever URL it assigns. Linked from the README once that's set up; not built by our CI.
+- **This repo's own GitHub Pages site** (below) is the dbt documentation site, including the lineage graph — arguably the more important of the two anyway, since documentation quality *is* the deliverable. It's where someone sees that every mart column has a real description.
+- **The Streamlit dashboard** is hosted by Streamlit Community Cloud once connected, at whatever URL it assigns. Linked from the README once that's set up; not built by our CI. See `dashboards/README.md` for how it's deployed and why it rebuilds the warehouse itself on a cold start.
 
 ```
 GitHub Actions (on push, and nightly)
@@ -213,6 +213,9 @@ build:
 docs:
 	uv run dbt docs generate --target duckdb && uv run dbt docs serve
 
+dashboard:
+	cd dashboards && uv run --with-requirements requirements.txt streamlit run app.py
+
 full:
 	uv run python generator/generate.py --profile full --seed 42
 
@@ -220,7 +223,7 @@ clean:
 	rm -rf target dbt_packages data/generated data/*.duckdb*
 ```
 
-The Evidence dashboard (`dashboards/`) isn't driven by this Makefile — it has its own CLI now (`cd dashboards && evidence dev`), and needs a `connection.yaml` (copied from `connection.example.yaml`, filled in with a MotherDuck token) and `evidence login` before it does anything. See DECISIONS.md.
+`make dashboard` builds the warehouse itself on first load if it doesn't already exist, so it works standalone too — see `dashboards/README.md` for how it's deployed to Streamlit Community Cloud.
 
 So the README instruction is two lines:
 
@@ -239,10 +242,10 @@ Add a devcontainer and reviewers get an **Open in GitHub Codespaces** button. Th
 {
   "name": "Nordmarkt Warehouse",
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
-  "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && ~/.local/bin/uv sync && curl -fsSL https://evidence.studio/install.sh | sh",
-  "forwardPorts": [3000, 8080],
+  "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && ~/.local/bin/uv sync",
+  "forwardPorts": [8501, 8080],
   "portsAttributes": {
-    "3000": { "label": "Evidence dashboard (needs evidence login)" },
+    "8501": { "label": "Streamlit dashboard (make dashboard)" },
     "8080": { "label": "dbt docs" }
   },
   "customizations": {

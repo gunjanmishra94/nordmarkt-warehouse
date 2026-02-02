@@ -11,13 +11,13 @@ Where those two pulled in opposite directions, I say so below rather than preten
 | Job | Tool | One-line reason |
 |---|---|---|
 | Transformation | dbt Core | The job is called analytics engineering because of this tool |
-| Warehouse | DuckDB (+ MotherDuck) | No account, no cost, runs anywhere; MotherDuck is the same engine, hosted, for the dashboard connection |
+| Warehouse | DuckDB | No account, no cost, runs anywhere |
 | Loading | dlt | Python library, no infrastructure, code you can read |
 | Data generation | Python + Faker + Pydantic | Total control over how messy the input is |
 | Testing | dbt tests, dbt_utils, dbt_expectations | Three layers of checks, from schema to statistics |
 | Project linting | dbt_project_evaluator | Catches modelling mistakes I can't see myself |
 | Formatting | SQLFluff, Ruff, pre-commit | Removes style from code review entirely |
-| Dashboard | Evidence.dev | Charts live in the repo as code, deploy free |
+| Dashboard | Streamlit | Python, in the repo, deploys free on Streamlit Community Cloud |
 | Environment | uv | Fast, reproducible, one file |
 | CI | GitHub Actions | Free, and the green tick is part of the portfolio |
 
@@ -43,7 +43,7 @@ Earlier drafts of this project targeted Snowflake and DuckDB together — the cl
 
 The reason is the same one the two-adapter design was trying to work around: Snowflake is a 30-day trial with $400 of credits, after which the project either costs money forever or the "prove it on Snowflake" checklist items just sit unchecked indefinitely. That's exactly what happened here — no trial account was ever created, so every Snowflake-shaped line in this repo (a second `profiles.yml` target, `dbt-snowflake`, adapter-dispatch macros with a `snowflake__` variant nothing ever exercised) was speculative work carried for a warehouse the project never actually touched.
 
-DuckDB runs inside the Python process. No server, no credentials, no cost, and every model, test and doc in this repo has actually been built and verified against it. That's the whole warehouse story now: **DuckDB proves the modelling.** MotherDuck (below, and in DECISIONS.md) is the one hosted exception, and only because the dashboard tool requires a live server-side connection — it's the same engine and adapter, not a second warehouse to write dbt for.
+DuckDB runs inside the Python process. No server, no credentials, no cost, and every model, test and doc in this repo has actually been built and verified against it. That's the whole warehouse story: **DuckDB proves the modelling**, full stop — nothing else in this project talks to a hosted warehouse. (An earlier draft added MotherDuck solely because Evidence Studio needed a live server-side connection; both are gone now — see DECISIONS.md.)
 
 If Snowflake experience needs demonstrating for a job search, that belongs in a project built around Snowflake-only concerns (warehouse sizing, clustering keys, `ACCOUNT_USAGE`) from the start, funded and run inside a live trial window — not bolted onto a project that has to keep working after the trial ends.
 
@@ -69,17 +69,17 @@ Every one of those is a deliberate test case, and because I built the generator 
 
 The risk is that generated data reads as fake and unimpressive. The defence is that the generator is itself a piece of the work — it's in the repo, it's documented, and the mess it creates is more realistic than most public datasets.
 
-### Evidence.dev for dashboards, not Metabase or Looker
+### Streamlit for dashboards, not Evidence, Metabase or Looker
 
 **Looker** is the tool Berlin scaleups list in job ads. It has no free tier. I'll learn LookML syntax on paper and not pretend otherwise.
 
 **Metabase** is free and open source, but the dashboards live in its own database. They can't be reviewed in a pull request, and they don't survive a clone.
 
-**Evidence** writes dashboards as markdown files with SQL in them. They sit in the repo, they get code-reviewed like anything else. A reviewer can read the chart's query without opening a tool.
+**Evidence** writes dashboards as markdown files with SQL in them, which sit in the repo and get code-reviewed like anything else — the original pick, for exactly that reason. It didn't survive contact with reality: Evidence pivoted from a free static-site generator to a hosted product ("Evidence Studio") mid-project, and Evidence Studio turned out to have no permanent free tier at all — a 30-day trial, then $2,500/month. Full story, including the Observable Framework alternative that got built and then dropped too, in DECISIONS.md.
 
-**Verdict:** Evidence, because "the dashboard is in the repo" fits everything else about this project — though not for the reason below anymore.
+**Streamlit** writes dashboards as plain Python, which is the language everything else non-SQL in this repo is already written in — no new toolchain, and a reviewer reads `dashboards/app.py` the same way they'd read `generator/generate.py`. Deploys free, permanently, on Streamlit Community Cloud.
 
-**Update, Stage 3:** the free/static/no-login version above ("Legacy Evidence") is deprecated. Current Evidence ("Studio") needs a live connection to one warehouse and its own account; the closest fit for us is MotherDuck (hosted DuckDB, its own free tier), used as that connection. Full reasoning in DECISIONS.md — the short version is that everything else about the choice still holds (markdown+SQL, in the repo, reviewable), it's just no longer the login-free static build originally described here.
+**Verdict:** Streamlit, because it's free forever (not a trial) and it's the one option here that doesn't ask this all-Python project to also learn an npm-based framework. The cost is that Streamlit needs a live Python process rather than serving static files, so the dashboard rebuilds the warehouse itself on a cold start instead of loading an instantly-static page — see DECISIONS.md for that tradeoff.
 
 ---
 
@@ -90,8 +90,6 @@ An embedded analytical database. Think SQLite, but columnar and vectorised for a
 The entire warehouse is one file, `data/nordmarkt.duckdb`. Delete it and the warehouse is gone; copy it and you've cloned the warehouse. It's gitignored, because it's a binary that changes on every run and `make demo` rebuilds it in seconds.
 
 For this data it's also plenty of engine: the `full` profile is around 500k order lines, and DuckDB comfortably handles hundreds of millions of rows on a laptop with no network round trip to slow it down.
-
-**MotherDuck** is hosted DuckDB, same engine and adapter, with a free tier. It's the one non-local target this project uses, and only because the dashboard (Evidence Studio) needs a live server-side connection to something — see DECISIONS.md. It's not a second dialect to write dbt for.
 
 ---
 
@@ -155,7 +153,7 @@ Each of these is a tool I could add. Not adding them is the point.
 
 Nearly nothing.
 
-DuckDB, dbt Core, dlt, uv and every dbt package here are free and open source. GitHub Actions is free at this volume. Evidence Studio and MotherDuck both have free tiers usable at this scale.
+DuckDB, dbt Core, dlt, uv and every dbt package here are free and open source. GitHub Actions is free at this volume. Streamlit Community Cloud has a genuine permanent free tier usable at this scale.
 
 **Total: €0.**
 
