@@ -108,6 +108,20 @@ Short entries: what was chosen, what was rejected, and why. Added to in the same
 
 **What this removes:** `profiles.yml`'s `motherduck` target, the `MOTHERDUCK_TOKEN`/`MOTHERDUCK_DATABASE` env vars, `pipeline/load.py --target motherduck`, and the `motherduck` extra on the `dlt` dependency. DuckDB-only, for real this time — the dashboard doesn't change that, since it's still the same single local file everything else in this project builds and reads.
 
+**Update:** the account-free option didn't have to be gone for good — see the next entry.
+
+---
+
+## Added a second, static dashboard build (`dashboards/static/`) alongside the live one, using stlite
+
+**Chosen:** a second build of the same three pages, `dashboards/static/`, using [stlite](https://github.com/whitphx/stlite) — it runs the real Streamlit package inside a Pyodide (WebAssembly) Python runtime in the browser, so the output is a plain static HTML/JS bundle. `.github/workflows/demo.yml` runs `dashboards/static/build_data.py` right after `dbt build` (the same `queries.py` SQL the live app uses, run once against `data/nordmarkt.duckdb`, dumped to JSON), then copies `dashboards/static/` into the site published to GitHub Pages at `/dashboard/`. Both dashboard builds now exist side by side; neither replaced the other.
+
+**Rejected:** dropping the live Streamlit Community Cloud version in favor of the static one — the static build is a snapshot from the last CI run, not a live queryable connection, so it's a genuine tradeoff rather than a strict upgrade. Also rejected: reviving Observable Framework for this instead, since the point was to keep the dashboard in Streamlit/Python.
+
+**Why:** the live version's real remaining cost was needing its own Streamlit Community Cloud account at all, on top of the cold-start rebuild — the thing the original Evidence pick was supposed to avoid. stlite closes that gap for anyone who doesn't need live querying: no account, no server, rides on the GitHub Pages build the dbt docs site already uses.
+
+**What this costs:** a real download of Pyodide + pandas + Streamlit in the visitor's browser before anything renders (tens of MB, cached after first load) — slower first paint than either a live server or the dbt docs' plain static HTML. Verified end-to-end with a real, headless Chromium browser (Playwright) during development, not just by reading stlite's docs: all three pages render with the correct numbers. One caught-and-fixed bug along the way — `st.dataframe(..., width="stretch")` throws `TypeError: 'str' object cannot be interpreted as an integer` on the Streamlit version stlite currently bundles (1.40.1); switched to `use_container_width=True` in `static/` only, since Streamlit Cloud's newer version handles `width="stretch"` fine. One accepted, unfixed cosmetic issue: every chart logs a harmless `Infinite extent` warning to the browser console (an Altair/Vega-Lite quirk in that same bundled version) with no visible effect on what's rendered.
+
 ---
 
 ## Snowflake dropped as a target; DuckDB only

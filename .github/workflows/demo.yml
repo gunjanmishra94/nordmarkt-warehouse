@@ -56,10 +56,14 @@ jobs:
       - name: Generate dbt docs
         run: uv run dbt docs generate --target duckdb --static
 
+      - name: Export data for the static dashboard build
+        run: uv run python dashboards/static/build_data.py
+
       - name: Assemble the site
         run: |
           mkdir -p site
           cp target/static_index.html site/index.html
+          cp -r dashboards/static site/dashboard
 
       - uses: actions/upload-pages-artifact@v3
         with:

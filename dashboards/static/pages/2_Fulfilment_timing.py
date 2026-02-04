@@ -3,9 +3,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import queries
 import streamlit as st
-from warehouse import query
+from data_source import load
 
 st.set_page_config(page_title="Nordmarkt — Fulfilment timing", page_icon="📦", layout="wide")
 
@@ -15,20 +14,20 @@ st.caption(
     '"picked" stage, see the main README\'s "What the numbers mean".'
 )
 
-summary = query(queries.FULFILMENT_SUMMARY).iloc[0]
+summary = load("fulfilment-summary.json").iloc[0]
 
 col1, col2, col3 = st.columns(3)
 col1.metric("Avg hours: placed to shipped", f"{summary.avg_hours_placed_to_shipped:.1f}")
 col2.metric("Avg hours: shipped to delivered", f"{summary.avg_hours_shipped_to_delivered:.1f}")
 col3.metric("Refund rate", f"{summary.refund_rate:.1%}")
 
-by_month = query(queries.FULFILMENT_BY_MONTH).set_index("month")
+by_month = load("fulfilment-by-month.json").set_index("month")
 
 st.subheader("Avg hours placed to delivered, by month")
 st.line_chart(by_month["avg_hours_placed_to_delivered"])
 
 st.subheader("Fulfilment by status")
-by_status = query(queries.FULFILMENT_BY_STATUS)
+by_status = load("fulfilment-by-status.json")
 st.dataframe(
     by_status.rename(
         columns={
@@ -39,5 +38,5 @@ st.dataframe(
         }
     ),
     hide_index=True,
-    width="stretch",
+    use_container_width=True,
 )

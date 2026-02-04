@@ -22,14 +22,16 @@ They want different things, and only building for one of them is the usual mista
 
 This section originally described Evidence compiling to static files with DuckDB-via-WASM running entirely in the browser — no backend, deployable to GitHub Pages for free. That's no longer how Evidence works, and Evidence Studio (what replaced it) turned out to have no permanent free tier at all; both it and the MotherDuck connection it required were dropped in favor of a Streamlit dashboard. Full story in DECISIONS.md.
 
-So the split is:
+So the split is now three-way:
 
-- **This repo's own GitHub Pages site** (below) is the dbt documentation site, including the lineage graph — arguably the more important of the two anyway, since documentation quality *is* the deliverable. It's where someone sees that every mart column has a real description.
-- **The Streamlit dashboard** is hosted by Streamlit Community Cloud once connected, at whatever URL it assigns. Linked from the README once that's set up; not built by our CI. See `dashboards/README.md` for how it's deployed and why it rebuilds the warehouse itself on a cold start.
+- **This repo's own GitHub Pages site** is the dbt documentation site, including the lineage graph — arguably the most important of the three anyway, since documentation quality *is* the deliverable. It's where someone sees that every mart column has a real description.
+- **A static dashboard**, also on this repo's GitHub Pages site, at `/dashboard/` — the same three Streamlit pages, but run entirely in the browser via [stlite](https://github.com/whitphx/stlite) against a data snapshot from the last CI build. No account, built and deployed by the same workflow as the docs site below.
+- **The live Streamlit dashboard** is hosted by Streamlit Community Cloud once connected, at whatever URL it assigns. Linked from the README once that's set up; not built by our CI, and queries the warehouse live rather than a snapshot. See `dashboards/README.md` for how both dashboard builds work and why there are two.
 
 ```
 GitHub Actions (on push, and nightly)
-  generator → dlt → dbt build (twice, for real snapshot history) → dbt docs → GitHub Pages
+  generator → dlt → dbt build (twice, for real snapshot history) → dbt docs
+    → export dashboard data (dashboards/static/build_data.py) → GitHub Pages
 ```
 
 ### Why GitHub Pages and not Vercel
