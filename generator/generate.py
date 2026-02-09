@@ -196,25 +196,45 @@ def build_order_lines(orders: list[Order], products: list[Product]) -> list[Orde
 
 
 def build_shipments(orders: list[Order]) -> list[Shipment]:
+    # A delivered order gets two events, not one: "shipped" when it leaves the
+    # warehouse, then "delivered" some days later. Collapsing both into a
+    # single row (the previous behaviour) made hours_shipped_to_delivered
+    # always exactly zero, since shipped_at and delivered_at were reading the
+    # same timestamp — see DECISIONS.md.
     shipments = []
     shipment_seq = 1
     for order in orders:
         if order.status not in {"shipped", "delivered"}:
             continue
         order_date = datetime.fromisoformat(order.order_date)
-        occurred_at = (order_date + timedelta(days=random.randint(1, 4))).astimezone(ZURICH)
-        recorded_at = maybe_delay(occurred_at)
+        carrier = random.choice(CARRIERS)
+
+        shipped_at = (order_date + timedelta(days=random.randint(1, 4))).astimezone(ZURICH)
         shipments.append(
             Shipment(
                 shipment_id=f"SHIP-{shipment_seq:07d}",
                 order_id=order.order_id,
-                carrier=random.choice(CARRIERS),
-                status="delivered" if order.status == "delivered" else "shipped",
-                occurred_at=occurred_at.isoformat(),
-                recorded_at=recorded_at.isoformat(),
+                carrier=carrier,
+                status="shipped",
+                occurred_at=shipped_at.isoformat(),
+                recorded_at=maybe_delay(shipped_at).isoformat(),
             )
         )
         shipment_seq += 1
+
+        if order.status == "delivered":
+            delivered_at = (shipped_at + timedelta(days=random.randint(1, 5))).astimezone(ZURICH)
+            shipments.append(
+                Shipment(
+                    shipment_id=f"SHIP-{shipment_seq:07d}",
+                    order_id=order.order_id,
+                    carrier=carrier,
+                    status="delivered",
+                    occurred_at=delivered_at.isoformat(),
+                    recorded_at=maybe_delay(delivered_at).isoformat(),
+                )
+            )
+            shipment_seq += 1
     return shipments
 
 
