@@ -32,8 +32,16 @@ def _run(*args: str) -> None:
 
 @st.cache_resource(show_spinner="Building the demo warehouse (generator -> dlt -> dbt)...")
 def _build() -> None:
-    if DB_PATH.exists():
-        return
+    # Always start from a deleted file, not just "run the pipeline again": the
+    # two incremental fact models only reprocess a recent lookback window
+    # against whatever's already in the target file, so simply re-running
+    # against a stale-but-present data/nordmarkt.duckdb (left over from a
+    # container that persisted disk across a code deploy) would leave old
+    # historical rows built under previous, possibly-buggy code untouched
+    # forever. Deleting first forces every model's first build in this
+    # process to be a real full build, matching a clean `make demo`.
+    DB_PATH.unlink(missing_ok=True)
+    Path(f"{DB_PATH}.wal").unlink(missing_ok=True)
     _run(sys.executable, "generator/generate.py", "--profile", "demo", "--seed", "42")
     _run(sys.executable, "pipeline/load.py", "--target", "duckdb")
     _run("dbt", "deps")
