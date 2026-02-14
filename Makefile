@@ -1,4 +1,4 @@
-.PHONY: demo generate deps load snapshot mutate build docs dashboard full clean
+.PHONY: demo generate deps load snapshot mutate build docs dashboard full clean load-motherduck build-motherduck demo-motherduck
 
 export DBT_PROFILES_DIR := .
 
@@ -38,6 +38,23 @@ docs:
 
 dashboard:
 	cd dashboards && uv run --with-requirements requirements.txt streamlit run app.py
+
+load-motherduck:
+	uv run python pipeline/load.py --target motherduck
+
+build-motherduck:
+	uv run dbt build --target motherduck
+
+# Pushes a fresh demo build to MotherDuck, for the live Streamlit Cloud
+# dashboard to query — see DECISIONS.md. Needs MOTHERDUCK_TOKEN in the
+# environment; this is what .github/workflows/motherduck.yml runs on a
+# schedule, not something the dashboard itself triggers.
+demo-motherduck: generate deps
+	$(MAKE) load-motherduck
+	$(MAKE) build-motherduck
+	$(MAKE) mutate
+	$(MAKE) load-motherduck
+	$(MAKE) build-motherduck
 
 full:
 	uv run python generator/generate.py --profile full --seed 42

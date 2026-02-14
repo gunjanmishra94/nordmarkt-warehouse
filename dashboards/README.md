@@ -5,9 +5,9 @@ Two builds of the same three pages (revenue overview, category trends, fulfilmen
 | | `app.py` + `pages/` (this folder) | `static/` |
 |---|---|---|
 | Runs on | Streamlit Community Cloud | GitHub Pages, at `/dashboard/` |
-| Needs an account | Yes (Streamlit Cloud) | No |
-| Data | Live — queries `data/nordmarkt.duckdb` directly | A snapshot — precomputed JSON, refreshed on every CI build |
-| How | Real Python process, real DuckDB connection | Runs Streamlit *in the browser* via [stlite](https://github.com/whitphx/stlite) (Pyodide/WebAssembly) — no server at all |
+| Needs an account | Yes (Streamlit Cloud, and MotherDuck when deployed) | No |
+| Data | Live — local dev queries `data/nordmarkt.duckdb` directly; deployed, queries MotherDuck | A snapshot — precomputed JSON, refreshed on every CI build |
+| How | Real Python process, real DuckDB (or MotherDuck) connection | Runs Streamlit *in the browser* via [stlite](https://github.com/whitphx/stlite) (Pyodide/WebAssembly) — no server at all |
 
 ## Running the live version locally
 
@@ -24,15 +24,15 @@ cd dashboards
 uv run --with-requirements requirements.txt streamlit run app.py
 ```
 
-`warehouse.py` builds `data/nordmarkt.duckdb` itself (the same generator → dlt → dbt steps `make demo` runs) the first time any page is opened, if it doesn't already exist, then every page just queries it.
+`warehouse.py` checks for `MOTHERDUCK_TOKEN` first. Unset — the normal case locally — it builds `data/nordmarkt.duckdb` itself (the same generator → dlt → dbt steps `make demo` runs) the first time any page is opened, if it doesn't already exist, then every page just queries it.
 
 ## Deploying the live version
 
 Hosted for free on [Streamlit Community Cloud](https://streamlit.io/cloud), which needs its own account (see DECISIONS.md) — this isn't wired into the repo's own GitHub Actions/Pages build the way the static version and the dbt docs site are.
 
-One-time setup: connect the repo on share.streamlit.io, set **Main file path** to `dashboards/app.py`. Streamlit Cloud reads `dashboards/requirements.txt` (it doesn't understand the root `pyproject.toml`/`uv.lock`, since its resolver assumes Poetry's format) — keep it in step with the root `pyproject.toml` by hand.
+One-time setup: connect the repo on share.streamlit.io, set **Main file path** to `dashboards/app.py`. Streamlit Cloud reads `dashboards/requirements.txt` (it doesn't understand the root `pyproject.toml`/`uv.lock`, since its resolver assumes Poetry's format) — keep it in step with the root `pyproject.toml` by hand. In the app's **Secrets**, set `MOTHERDUCK_TOKEN` (and `MOTHERDUCK_DATABASE` if it's not `nordmarkt`) to a MotherDuck [service token](https://motherduck.com/docs/key-tasks/authenticating-and-connecting/authenticating-to-motherduck/#authentication-using-a-service-token).
 
-Every visit after the container's been asleep triggers a full warehouse rebuild (tens of seconds), since `data/nordmarkt.duckdb` is a gitignored build artifact, not something committed.
+With `MOTHERDUCK_TOKEN` set, `warehouse.py` connects straight to MotherDuck instead of building a local file — no cold-start rebuild. That database is kept fresh independently by `.github/workflows/motherduck.yml` (nightly and on push to `main`), which needs the same token as a repo secret. See DECISIONS.md for why MotherDuck is back after being dropped once already.
 
 ## The static version (`static/`)
 

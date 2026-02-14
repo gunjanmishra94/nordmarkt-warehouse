@@ -1,0 +1,46 @@
+name: MotherDuck refresh
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 4 * * *" # nightly, so the live dashboard never looks stale
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DBT_PROFILES_DIR: ./
+      MOTHERDUCK_TOKEN: ${{ secrets.MOTHERDUCK_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Generate the demo dataset
+        run: uv run python generator/generate.py --profile demo --seed 42
+
+      - name: Load raw data into MotherDuck
+        run: uv run python pipeline/load.py --target motherduck
+
+      - name: Install dbt packages
+        run: uv run dbt deps
+
+      - name: Build the warehouse on MotherDuck (baseline extract)
+        run: uv run dbt build --target motherduck
+
+      # dim_customer's Type-2 history needs two real extracts to snapshot a
+      # diff between — see DECISIONS.md. This simulates the second one.
+      - name: Simulate a later day for a slice of customers
+        run: uv run python generator/mutate_customers.py --seed 43
+
+      - name: Reload and rebuild (captures the customer snapshot diff)
+        run: |
+          uv run python pipeline/load.py --target motherduck
+          uv run dbt build --target motherduck

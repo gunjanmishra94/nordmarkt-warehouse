@@ -6,6 +6,7 @@ conversion done in later stages isn't fake.
 """
 
 import argparse
+import os
 from pathlib import Path
 
 import dlt
@@ -70,6 +71,10 @@ def fx_rates_resource(start_date: str, end_date: str):
 def build_destination(target: str):
     if target == "duckdb":
         return dlt.destinations.duckdb("data/nordmarkt.duckdb")
+    if target == "motherduck":
+        database = os.environ.get("MOTHERDUCK_DATABASE", "nordmarkt")
+        token = os.environ["MOTHERDUCK_TOKEN"]
+        return dlt.destinations.motherduck(credentials=f"md:{database}?motherduck_token={token}")
     raise ValueError(f"Unknown target: {target}")
 
 
@@ -84,7 +89,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Load generated Nordmarkt data into the warehouse."
     )
-    parser.add_argument("--target", choices=["duckdb"], default="duckdb")
+    parser.add_argument("--target", choices=["duckdb", "motherduck"], default="duckdb")
     parser.add_argument("--data-dir", type=Path, default=Path("data/generated"))
     args = parser.parse_args()
 

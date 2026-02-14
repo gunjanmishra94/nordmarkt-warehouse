@@ -489,6 +489,10 @@ wheels = [
 duckdb = [
     { name = "duckdb" },
 ]
+motherduck = [
+    { name = "duckdb" },
+    { name = "pyarrow" },
+]
 
 [[package]]
 name = "duckdb"
@@ -931,7 +935,7 @@ source = { editable = "." }
 dependencies = [
     { name = "dbt-core" },
     { name = "dbt-duckdb" },
-    { name = "dlt", extra = ["duckdb"] },
+    { name = "dlt", extra = ["duckdb", "motherduck"] },
     { name = "faker" },
     { name = "pandas" },
     { name = "pyarrow" },
@@ -951,7 +955,7 @@ dev = [
 requires-dist = [
     { name = "dbt-core", specifier = ">=1.8" },
     { name = "dbt-duckdb", specifier = ">=1.8" },
-    { name = "dlt", extras = ["duckdb"], specifier = ">=1.4" },
+    { name = "dlt", extras = ["duckdb", "motherduck"], specifier = ">=1.4" },
     { name = "faker", specifier = ">=25.0" },
     { name = "pandas", specifier = ">=2.2" },
     { name = "pyarrow", specifier = ">=16.0" },

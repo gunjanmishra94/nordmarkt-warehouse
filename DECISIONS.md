@@ -124,6 +124,18 @@ Short entries: what was chosen, what was rejected, and why. Added to in the same
 
 ---
 
+## MotherDuck comes back, this time only to give the live Streamlit Cloud app a warm database
+
+**Chosen:** `profiles.yml` gets a `motherduck` dbt target (`path: "md:{database}?motherduck_token={token}"`), `pipeline/load.py --target motherduck` loads into it via dlt's native MotherDuck destination, and `.github/workflows/motherduck.yml` runs the same generate → load → dbt-build-twice sequence `demo.yml` runs, nightly and on push to `main`, against MotherDuck instead of the local file. `dashboards/warehouse.py` now checks for `MOTHERDUCK_TOKEN`: set (the Streamlit Community Cloud deploy) it connects straight to MotherDuck and queries it live; unset (local `make dashboard`) it builds and queries `data/nordmarkt.duckdb` exactly as before.
+
+**Rejected:** rebuilding the whole warehouse in-process on every cold start (the status quo this replaces for the live deploy only), and re-adopting MotherDuck for local development or for the static/CI-built dashboard — neither of those needed it and both stay exactly as they were.
+
+**Why:** this is a different problem than the one that got MotherDuck dropped before. Last time (see above) it existed solely because Evidence Studio required a live server-side connector; once Evidence Studio was dropped for having no free tier, MotherDuck had no remaining reason to exist, since a Python dashboard could just open the DuckDB file itself. That reasoning held right up until the file stopped being something you could "just open" for a deployed app: Streamlit Community Cloud containers are ephemeral, so every cold start after a sleep paid a tens-of-seconds full pipeline rebuild before the first page could render. MotherDuck removes that by giving the live deploy an always-there database a scheduled job keeps fresh, instead of the app rebuilding it on demand.
+
+**What this costs:** a MotherDuck account/token, which is a real new external dependency — but it's additive to a cost the live deploy already had (Streamlit Community Cloud's own account), not a new category of "account only I have" the way it would be for the account-free paths. `docs/DEPLOY.md`'s constraint — the *permanent* demo can't depend on an account only I have — still holds: the GitHub Pages docs site and the stlite static dashboard remain fully account-free and untouched by this change. Only the live, already-account-gated Streamlit deploy points at MotherDuck.
+
+---
+
 ## Snowflake dropped as a target; DuckDB only
 
 **Chosen:** the project targets DuckDB exclusively. The `snowflake` output in `profiles.yml`, the `SNOWFLAKE_*` env vars, the `dbt-snowflake` and `dlt[snowflake]` dependencies, the `make snowflake` / `pipeline/load.py --target snowflake` paths, and the `snowflake__` variants of the `date_diff_hours`, `iso_day_of_week` and `to_utc_timestamp` adapter-dispatch macros are all removed. Those macros are now plain single-adapter macros — there's no second dialect left to isolate a difference from.

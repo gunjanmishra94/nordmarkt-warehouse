@@ -26,7 +26,7 @@ So the split is now three-way:
 
 - **This repo's own GitHub Pages site** is the dbt documentation site, including the lineage graph — arguably the most important of the three anyway, since documentation quality *is* the deliverable. It's where someone sees that every mart column has a real description.
 - **A static dashboard**, also on this repo's GitHub Pages site, at `/dashboard/` — the same three Streamlit pages, but run entirely in the browser via [stlite](https://github.com/whitphx/stlite) against a data snapshot from the last CI build. No account, built and deployed by the same workflow as the docs site below.
-- **The live Streamlit dashboard** is hosted by Streamlit Community Cloud once connected, at whatever URL it assigns. Linked from the README once that's set up; not built by our CI, and queries the warehouse live rather than a snapshot. See `dashboards/README.md` for how both dashboard builds work and why there are two.
+- **The live Streamlit dashboard** is hosted by Streamlit Community Cloud once connected, at whatever URL it assigns. Linked from the README once that's set up. It queries a MotherDuck database live rather than a snapshot — `.github/workflows/motherduck.yml` keeps that database built and fresh (nightly and on push to `main`), separately from the `demo.yml` build below. See `dashboards/README.md` for how both dashboard builds work, and DECISIONS.md for why MotherDuck is back.
 
 ```
 GitHub Actions (on push, and nightly)
@@ -306,6 +306,7 @@ Two rules: never depend on the internet, and always know what the last command p
 - [ ] Pages enabled, Source set to GitHub Actions
 - [ ] `demo.yml` green, site live
 - [ ] `ci.yml` green, badge in README
+- [ ] `MOTHERDUCK_TOKEN` set as a repo secret (for `motherduck.yml`) and as a Streamlit Cloud app secret (for the live dashboard), `motherduck.yml` green
 - [ ] Both URLs linked at the top of the README
 - [ ] Devcontainer committed, Codespaces button verified
 - [ ] `make demo` works from a clean clone on a machine that isn't yours

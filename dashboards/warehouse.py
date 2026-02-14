@@ -1,12 +1,17 @@
-"""Builds the demo warehouse once per running app instance and caches it.
+"""Connects to the demo warehouse, once per running app instance, and caches it.
 
-Streamlit Community Cloud containers are ephemeral, and `data/nordmarkt.duckdb`
-is deliberately gitignored (see the root .gitignore) since it's a build
-artifact that changes on every run. So there's nothing to query when a cold
-container starts — this runs the same generator -> dlt -> dbt pipeline
-`make demo` runs locally, once, the first time anyone visits, then every
-later visitor is served from the cached connection until the container
-restarts.
+Two modes, chosen by whether MOTHERDUCK_TOKEN is set:
+
+- Set (the deployed Streamlit Community Cloud app): connects straight to the
+  MotherDuck database that .github/workflows/motherduck.yml keeps built and
+  fresh on a schedule. No local build, no cold-start rebuild.
+- Unset (local `make dashboard`): `data/nordmarkt.duckdb` is deliberately
+  gitignored (see the root .gitignore) since it's a build artifact that
+  changes on every run, so this runs the same generator -> dlt -> dbt
+  pipeline `make demo` runs locally, once, the first time anyone visits,
+  then every later visitor is served from the cached connection until the
+  process restarts. See DECISIONS.md for why MotherDuck is back and why
+  local dev still doesn't touch it.
 """
 
 import os
@@ -55,6 +60,10 @@ def _build() -> None:
 
 @st.cache_resource(show_spinner=False)
 def _connection() -> duckdb.DuckDBPyConnection:
+    token = os.environ.get("MOTHERDUCK_TOKEN")
+    if token:
+        database = os.environ.get("MOTHERDUCK_DATABASE", "nordmarkt")
+        return duckdb.connect(f"md:{database}?motherduck_token={token}", read_only=True)
     _build()
     return duckdb.connect(str(DB_PATH), read_only=True)
 

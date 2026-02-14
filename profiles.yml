@@ -6,3 +6,8 @@ nordmarkt:
       path: data/nordmarkt.duckdb
       schema: main
       threads: 4
+    motherduck:
+      type: duckdb
+      path: "md:{{ env_var('MOTHERDUCK_DATABASE', 'nordmarkt') }}?motherduck_token={{ env_var('MOTHERDUCK_TOKEN') }}"
+      schema: main
+      threads: 4
