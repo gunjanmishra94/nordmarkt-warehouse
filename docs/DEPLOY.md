@@ -2,7 +2,7 @@
 
 A portfolio project nobody can look at is a private hobby. This file covers how Nordmarkt gets in front of people, and the configuration to make it happen.
 
-The guiding constraint: **the permanent demo cannot depend on an account only I have.** Everything public runs on DuckDB.
+The guiding constraint: **the permanent demo cannot depend on an account only I have.** That held without exception until the live dashboard needed MotherDuck to avoid a cold-start rebuild — see DECISIONS.md for why that's now an accepted, narrow exception rather than a rule broken silently. The dbt docs site, and everything that runs locally, still needs no account at all.
 
 ---
 
@@ -22,16 +22,19 @@ They want different things, and only building for one of them is the usual mista
 
 This section originally described Evidence compiling to static files with DuckDB-via-WASM running entirely in the browser — no backend, deployable to GitHub Pages for free. That's no longer how Evidence works, and Evidence Studio (what replaced it) turned out to have no permanent free tier at all; both it and the MotherDuck connection it required were dropped in favor of a Streamlit dashboard. Full story in DECISIONS.md.
 
-So the split is now three-way:
+A static, account-free dashboard used to sit alongside the live one — a second build run entirely in the browser via [stlite](https://github.com/whitphx/stlite) against a CI-built data snapshot. It's gone now that the live dashboard has a real, always-warm database behind it and doesn't need a fallback for the cold-start problem that static build existed to route around — see DECISIONS.md.
 
-- **This repo's own GitHub Pages site** is the dbt documentation site, including the lineage graph — arguably the most important of the three anyway, since documentation quality *is* the deliverable. It's where someone sees that every mart column has a real description.
-- **A static dashboard**, also on this repo's GitHub Pages site, at `/dashboard/` — the same three Streamlit pages, but run entirely in the browser via [stlite](https://github.com/whitphx/stlite) against a data snapshot from the last CI build. No account, built and deployed by the same workflow as the docs site below.
-- **The live Streamlit dashboard** is hosted by Streamlit Community Cloud once connected, at whatever URL it assigns. Linked from the README once that's set up. It queries a MotherDuck database live rather than a snapshot — `.github/workflows/motherduck.yml` keeps that database built and fresh (nightly and on push to `main`), separately from the `demo.yml` build below. See `dashboards/README.md` for how both dashboard builds work, and DECISIONS.md for why MotherDuck is back.
+So the split is now two-way:
+
+- **This repo's own GitHub Pages site** is the dbt documentation site, including the lineage graph — arguably the more important of the two anyway, since documentation quality *is* the deliverable. It's where someone sees that every mart column has a real description. Built by `.github/workflows/demo.yml`, no account needed to view it.
+- **The live Streamlit dashboard** is hosted by Streamlit Community Cloud once connected, at whatever URL it assigns. Linked from the README once that's set up. It queries a MotherDuck database live — `.github/workflows/motherduck.yml` keeps that database built and fresh (nightly and on push to `main`), separately from the `demo.yml` build below. See `dashboards/README.md`, and DECISIONS.md for why MotherDuck is back.
 
 ```
 GitHub Actions (on push, and nightly)
-  generator → dlt → dbt build (twice, for real snapshot history) → dbt docs
-    → export dashboard data (dashboards/static/build_data.py) → GitHub Pages
+  generator → dlt → dbt build (twice, for real snapshot history) → dbt docs → GitHub Pages
+
+GitHub Actions (on push, and nightly, separately)
+  generator → dlt → dbt build (twice, for real snapshot history), targeting MotherDuck
 ```
 
 ### Why GitHub Pages and not Vercel

@@ -1,10 +1,7 @@
-"""SQL shared by both dashboard builds.
+"""SQL for the dashboard.
 
-`app.py`/`pages/*.py` run these live, against a DuckDB connection, for the
-Streamlit Community Cloud deploy. `static/build_data.py` runs the same
-queries once at CI build time and dumps the results as JSON for the
-account-free stlite (in-browser) build on GitHub Pages. One set of SQL,
-two ways of serving the result — see DECISIONS.md for why there are two.
+`app.py`/`pages/*.py` run these live, against `warehouse.query()` — a local
+DuckDB connection for development, MotherDuck for the deployed app.
 """
 
 REVENUE_TOTALS = """

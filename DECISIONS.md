@@ -132,7 +132,21 @@ Short entries: what was chosen, what was rejected, and why. Added to in the same
 
 **Why:** this is a different problem than the one that got MotherDuck dropped before. Last time (see above) it existed solely because Evidence Studio required a live server-side connector; once Evidence Studio was dropped for having no free tier, MotherDuck had no remaining reason to exist, since a Python dashboard could just open the DuckDB file itself. That reasoning held right up until the file stopped being something you could "just open" for a deployed app: Streamlit Community Cloud containers are ephemeral, so every cold start after a sleep paid a tens-of-seconds full pipeline rebuild before the first page could render. MotherDuck removes that by giving the live deploy an always-there database a scheduled job keeps fresh, instead of the app rebuilding it on demand.
 
-**What this costs:** a MotherDuck account/token, which is a real new external dependency — but it's additive to a cost the live deploy already had (Streamlit Community Cloud's own account), not a new category of "account only I have" the way it would be for the account-free paths. `docs/DEPLOY.md`'s constraint — the *permanent* demo can't depend on an account only I have — still holds: the GitHub Pages docs site and the stlite static dashboard remain fully account-free and untouched by this change. Only the live, already-account-gated Streamlit deploy points at MotherDuck.
+**What this costs:** a MotherDuck account/token, which is a real new external dependency — but it's additive to a cost the live deploy already had (Streamlit Community Cloud's own account), not a new category of "account only I have" the way it would be for the account-free paths. `docs/DEPLOY.md`'s constraint — the *permanent* demo can't depend on an account only I have — still holds: the GitHub Pages docs site remains fully account-free and untouched by this change. Only the live, already-account-gated Streamlit deploy points at MotherDuck.
+
+**Superseded in part:** the claim above that "the stlite static dashboard remain[s] fully account-free and untouched" no longer holds — see the next entry, which removes it.
+
+---
+
+## Removed the static/stlite GitHub Pages dashboard build
+
+**Chosen:** deleted `dashboards/static/` entirely (the stlite/Pyodide build, its CI export step in `demo.yml`, and the `/dashboard/` route on GitHub Pages). The GitHub Pages site is now the dbt docs alone. The live Streamlit Cloud dashboard, backed by MotherDuck (see the entry above), is the only dashboard build left.
+
+**Rejected:** keeping both builds side by side, which is what the entry that introduced the static build originally chose and justified.
+
+**Why:** the static build's entire reason to exist was giving anyone a way to see the dashboard without needing an account, specifically to route around the live version's cold-start rebuild. MotherDuck now removes that cold-start problem directly, at the live dashboard's own layer — so the static build stopped paying for itself. What's left of its cost didn't stop being real just because the reason disappeared: two dashboard builds to keep in sync (`queries.py` is shared, but `static/app.py`/`static/pages/*.py` and their Streamlit-version-specific workarounds were not), a stlite/Pyodide bundle quirk already worked around once (`width="stretch"` vs `use_container_width`), and a second CI export step. None of that was worth carrying once the problem it solved was solved elsewhere.
+
+**What this costs, honestly:** this is a real regression against the account-free principle this project otherwise holds to, not a free simplification. Before this change, the dashboard itself (not just the dbt docs) could be viewed by anyone with no account, even if the live version was asleep. After this change, seeing the dashboard requires the live Streamlit Cloud + MotherDuck deploy to be up — there is no fallback. The dbt docs site (arguably the more important of the two artifacts, since documentation quality is the actual deliverable — see `docs/DEPLOY.md`) remains fully account-free, so the core "a stranger can look at this for free" promise isn't broken, but it now rests entirely on the docs site rather than being true of the dashboard too.
 
 ---
 

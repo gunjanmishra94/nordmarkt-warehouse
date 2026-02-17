@@ -4,7 +4,7 @@ An analytics warehouse for a fictional Berlin online marketplace, built with dbt
 
 This repo is a portfolio project. It exists to show that I can take raw, messy operational data and turn it into a small set of clean, well-documented tables that a business person can actually query and trust.
 
-**[Dashboard](https://gunjanmishra94.github.io/nordmarkt-warehouse/dashboard/)** · **[dbt docs](https://gunjanmishra94.github.io/nordmarkt-warehouse/)**
+**[dbt docs](https://gunjanmishra94.github.io/nordmarkt-warehouse/)** · Dashboard: link to come once the Streamlit Cloud deploy is live — see `dashboards/README.md`
 
 ---
 
@@ -59,7 +59,7 @@ flowchart LR
 
 **Marts** — The actual product. A small number of tables shaped so that a business question maps to a single, obvious query. This is where the thinking lives.
 
-**Dashboard** — A three-page Streamlit app proving the marts answer the questions they claim to answer. Two builds: a live one on Streamlit Community Cloud, and a fully static one riding on this repo's own GitHub Pages site — see `dashboards/README.md`.
+**Dashboard** — A three-page Streamlit app proving the marts answer the questions they claim to answer. Deployed live on Streamlit Community Cloud, backed by MotherDuck — see `dashboards/README.md`.
 
 Why each of these tools and not the obvious alternatives: see [STACK.md](docs/STACK.md).
 How it all gets published so people can actually look at it: see [DEPLOY.md](docs/DEPLOY.md).
@@ -147,6 +147,6 @@ Terms that show up in the code, in plain words.
 
 ## Status
 
-`make demo` generates the data, loads it (twice, for real snapshot/lookback history), and builds the full warehouse against DuckDB — star schema, incremental facts, business-rule and distribution tests, all passing. Revenue-by-category-by-month is answerable in one `SELECT`. dbt docs and the demo site publish to GitHub Pages automatically on every push to `main`.
+`make demo` generates the data, loads it (twice, for real snapshot/lookback history), and builds the full warehouse against DuckDB — star schema, incremental facts, business-rule and distribution tests, all passing. Revenue-by-category-by-month is answerable in one `SELECT`. dbt docs publish to GitHub Pages automatically on every push to `main`; a separate scheduled job builds the same warehouse into MotherDuck for the live dashboard — see `dashboards/README.md`.
 
-The static dashboard (`/dashboard/` on the GitHub Pages site) needs no account and is built by the same CI run as the docs site. One thing remains blocked on an account only a person can create, not on anything left to build: the *live* Streamlit dashboard needs to actually be deployed on Streamlit Community Cloud — see `dashboards/README.md`. Everything else, including running either dashboard locally, needs no account.
+Running the pipeline, the tests, and the dashboard locally needs no account at all. The dbt docs site is public and account-free. The live dashboard is the one thing that needs its own accounts (Streamlit Community Cloud, MotherDuck) — see DECISIONS.md for why that tradeoff was accepted.

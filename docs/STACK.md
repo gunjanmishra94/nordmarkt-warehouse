@@ -43,7 +43,7 @@ Earlier drafts of this project targeted Snowflake and DuckDB together — the cl
 
 The reason is the same one the two-adapter design was trying to work around: Snowflake is a 30-day trial with $400 of credits, after which the project either costs money forever or the "prove it on Snowflake" checklist items just sit unchecked indefinitely. That's exactly what happened here — no trial account was ever created, so every Snowflake-shaped line in this repo (a second `profiles.yml` target, `dbt-snowflake`, adapter-dispatch macros with a `snowflake__` variant nothing ever exercised) was speculative work carried for a warehouse the project never actually touched.
 
-DuckDB runs inside the Python process. No server, no credentials, no cost, and every model, test and doc in this repo has actually been built and verified against it. That's the whole warehouse story for local development, CI, and the account-free static dashboard: **DuckDB proves the modelling**, full stop. The one exception is the live Streamlit Cloud dashboard, which queries a MotherDuck database (hosted DuckDB) instead of rebuilding the file on every cold start — see DECISIONS.md for why that's back after being dropped once already.
+DuckDB runs inside the Python process. No server, no credentials, no cost, and every model, test and doc in this repo has actually been built and verified against it. That's the whole warehouse story for local development and CI: **DuckDB proves the modelling**, full stop. The one exception is the live Streamlit Cloud dashboard, which queries a MotherDuck database (hosted DuckDB) instead of rebuilding the file on every cold start — see DECISIONS.md for why that's back after being dropped once already.
 
 If Snowflake experience needs demonstrating for a job search, that belongs in a project built around Snowflake-only concerns (warehouse sizing, clustering keys, `ACCOUNT_USAGE`) from the start, funded and run inside a live trial window — not bolted onto a project that has to keep working after the trial ends.
 
@@ -79,9 +79,7 @@ The risk is that generated data reads as fake and unimpressive. The defence is t
 
 **Streamlit** writes dashboards as plain Python, which is the language everything else non-SQL in this repo is already written in — no new toolchain, and a reviewer reads `dashboards/app.py` the same way they'd read `generator/generate.py`. Deploys free, permanently, on Streamlit Community Cloud.
 
-**Verdict:** Streamlit, because it's free forever (not a trial) and it's the one option here that doesn't ask this all-Python project to also learn an npm-based framework. The cost is that Streamlit needs a live Python process rather than serving static files, so the dashboard rebuilds the warehouse itself on a cold start instead of loading an instantly-static page.
-
-**Update:** there's now a second build, `dashboards/static/`, using [stlite](https://github.com/whitphx/stlite) to run the same Streamlit pages entirely in the browser (Pyodide/WebAssembly) — a genuinely static, account-free alternative deployed to GitHub Pages, at the cost of serving a data snapshot from the last CI build rather than a live connection. Both builds exist side by side. Full reasoning in DECISIONS.md.
+**Verdict:** Streamlit, because it's free forever (not a trial) and it's the one option here that doesn't ask this all-Python project to also learn an npm-based framework. The cost is that Streamlit needs a live Python process; deployed, it now queries MotherDuck rather than rebuilding the warehouse itself on a cold start — see DECISIONS.md. A second, account-free build (`dashboards/static/`, running Streamlit in-browser via stlite) existed for a while as a fallback around that cold-start cost and was later dropped once MotherDuck solved the problem directly — full reasoning in DECISIONS.md.
 
 ---
 
