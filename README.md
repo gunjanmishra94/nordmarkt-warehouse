@@ -4,7 +4,7 @@ An analytics warehouse for a fictional Berlin online marketplace, built with dbt
 
 This repo is a portfolio project. It exists to show that I can take raw, messy operational data and turn it into a small set of clean, well-documented tables that a business person can actually query and trust.
 
-**[dbt docs](https://gunjanmishra94.github.io/nordmarkt-warehouse/)** · Dashboard: link to come once the Streamlit Cloud deploy is live — see `dashboards/README.md`
+**[Dashboard](https://nordmarkt-warehouse.streamlit.app/)** · **[dbt docs](https://gunjanmishra94.github.io/nordmarkt-warehouse/)**
 
 ---
 
