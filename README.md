@@ -60,17 +60,13 @@ flowchart LR
     class G,R,S,M,Dash stage;
 ```
 
-**Generator:** invents Nordmarkt's history (customers, orders, shipments, refunds), deliberately introducing realistic problems (duplicates, late-arriving events, a mid-history schema change) so the rest of the project has something real to defend against.
+- **Generator:** invents Nordmarkt's history (customers, orders, shipments, refunds), deliberately introducing realistic problems (duplicates, late-arriving events, a mid-history schema change) so the rest of the project has something real to defend against.
+- **Raw:** the generated data lands untouched. Nothing is cleaned here; if the source is ugly, the raw layer is ugly. Loaded with `dlt`, which also pulls real daily exchange rates from a public API.
+- **Staging:** one model per source table: renames, casts, converts every timestamp to UTC, dedupes. No business logic, no joins.
+- **Marts:** the actual product. A small number of tables shaped so a business question maps to one obvious query.
+- **Dashboard:** a three-page Streamlit app proving the marts answer the questions they claim to.
 
-**Raw:** the generated data lands untouched. Nothing is cleaned here; if the source is ugly, the raw layer is ugly. Loaded with `dlt`, which also pulls real daily exchange rates from a public API.
-
-**Staging:** one model per source table: renames, casts, converts every timestamp to UTC, dedupes. No business logic, no joins.
-
-**Marts:** the actual product. A small number of tables shaped so a business question maps to one obvious query.
-
-**Dashboard:** a three-page Streamlit app proving the marts answer the questions they claim to.
-
-Why each tool and not the obvious alternative: [STACK.md](docs/STACK.md). How it's all published: [DEPLOY.md](docs/DEPLOY.md).
+> **Note:** Why each tool and not the obvious alternative: [STACK.md](docs/STACK.md). How it's all published: [DEPLOY.md](docs/DEPLOY.md).
 
 ## What's in the warehouse
 
