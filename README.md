@@ -36,8 +36,6 @@ Nordmarkt sells homeware across Germany, Austria and Switzerland: orders get shi
 - Which product categories are growing, and how fast?
 - How long does it take to go from order placed to parcel delivered?
 
-I work as a data engineer, moving into analytics engineering. Data engineering is judged on whether the pipeline runs; analytics engineering on whether the numbers are right and people trust them. So this project puts the weight on the second thing: deciding what each table means before writing it, writing down why each decision was made, and testing business rules rather than just checking for nulls. The code being clean is table stakes; the judgement is the deliverable.
-
 ## The value it creates
 
 - **One number, not five.** `fct_order_lines.net_revenue_eur` is *the* answer to "what's our revenue", and anyone can check how it's defined.
