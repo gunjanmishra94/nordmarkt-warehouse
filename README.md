@@ -42,7 +42,6 @@ Nordmarkt sells homeware across Germany, Austria and Switzerland: orders get shi
 - **Trust that survives a follow-up question.** Every mart column has a real description, every business rule has a test, and every non-obvious call is written down in `DECISIONS.md`, so "why does this say X" always has an answer.
 - **History that doesn't get silently erased.** `dim_customer` is a Type 2 dimension, so a customer moving city doesn't retroactively rewrite where their past orders shipped.
 - **Late data doesn't mean wrong data.** The incremental models pick up shipments and refunds that arrive after the fact, instead of silently under-counting until the next full rebuild.
-- **A stranger can pick it up.** Clone it, run `make demo`, and understand every table without asking the person who built it.
 
 ## How it fits together
 
