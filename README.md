@@ -25,7 +25,7 @@ make dashboard  # launch the Streamlit dashboard locally
 
 ## Why this exists
 
-This is a portfolio project: it takes raw, messy operational data and turns it into a small set of clean, well-documented tables that a business person can actually query and trust.
+This project takes raw, messy operational data and turns it into a small set of clean, well-documented tables that a business person can actually query and trust.
 
 Nordmarkt sells homeware across Germany, Austria and Switzerland: orders get shipped, cancelled, or refunded, customers move house or change tier, some pay in Swiss francs. The raw data is a mess, as raw data always is: events arrive late, orders duplicate, timestamps span three timezones, and a column got renamed mid-history with no note left behind. This repo sits between that mess and questions like:
 
