@@ -41,7 +41,7 @@ Nordmarkt sells homeware across Germany, Austria and Switzerland: orders get shi
 - **History that doesn't get silently erased.** `dim_customer` is a Type 2 dimension, so a customer moving city doesn't retroactively rewrite where their past orders shipped.
 - **Late data doesn't mean wrong data.** The incremental models pick up shipments and refunds that arrive after the fact, instead of silently under-counting until the next full rebuild.
 
-## How it fits together
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -63,7 +63,7 @@ flowchart LR
 
 > **Note:** Why each tool and not the obvious alternative: [STACK.md](docs/STACK.md). How it's all published: [DEPLOY.md](docs/DEPLOY.md).
 
-## What's in the warehouse
+## Data model
 
 A **star schema**: a few fact tables recording things that happened, surrounded by dimension tables describing who and what was involved.
 
