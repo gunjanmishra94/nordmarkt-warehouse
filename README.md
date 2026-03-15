@@ -23,7 +23,7 @@ make dashboard  # launch the Streamlit dashboard locally
 
 ---
 
-## Why this exists
+## Problem statement
 
 This project takes raw, messy operational data and turns it into a small set of clean, well-documented tables that a business person can actually query and trust.
 
@@ -34,7 +34,7 @@ Nordmarkt sells homeware across Germany, Austria and Switzerland: orders get shi
 - Which product categories are growing, and how fast?
 - How long does it take to go from order placed to parcel delivered?
 
-## The value it creates
+## Impact/value
 
 - **One number, not five.** `fct_order_lines.net_revenue_eur` is *the* answer to "what's our revenue", and anyone can check how it's defined.
 - **Trust that survives a follow-up question.** Every mart column has a real description, every business rule has a test, and every non-obvious call is written down in `DECISIONS.md`, so "why does this say X" always has an answer.
@@ -86,7 +86,7 @@ erDiagram
 
 Two calls worth flagging. `fct_order_lines` is at **order-line grain** (one row per product within an order), not order grain, which lets you analyse by category at the cost of needing shipping/discount allocated proportionally across lines rather than naively summed (tested). `dim_customer` is a **Type 2 slowly changing dimension**: it keeps both address versions with valid-from/valid-to dates, so "sales by city in March" reflects where people actually lived in March, not where they live now.
 
-## What the numbers mean
+## Key definitions
 
 Every column has a real description in `models/marts/_marts.yml`; this is the short version.
 

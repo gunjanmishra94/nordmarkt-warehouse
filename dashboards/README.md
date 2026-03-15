@@ -1,6 +1,6 @@
 # Dashboard
 
-A three-page Streamlit app (revenue overview, category trends, fulfilment timing). See the main [README](../README.md#what-the-numbers-mean) for what the numbers mean, and [DECISIONS.md](../DECISIONS.md) for why this replaced Evidence, and why it's backed by MotherDuck when deployed.
+A three-page Streamlit app (revenue overview, category trends, fulfilment timing). See the main [README](../README.md#key-definitions) for what the numbers mean, and [DECISIONS.md](../DECISIONS.md) for why this replaced Evidence, and why it's backed by MotherDuck when deployed.
 
 ## Running it locally
 
