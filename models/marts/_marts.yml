@@ -34,9 +34,7 @@ models:
     description: >
       One row per holiday_date x federal_state for German public holidays.
       Kept separate from dim_date (which stays one row per day) so the date
-      dimension doesn't have to explode to a per-state grain. See
-      DECISIONS.md for the simplifications behind which states are assigned
-      to which regional holidays.
+      dimension doesn't have to explode to a per-state grain.
     columns:
       - name: holiday_date
         description: Date the holiday falls on.
@@ -115,7 +113,7 @@ models:
       are allocated across an order's lines proportionally by gross value;
       tests/assert_*_allocation_sums_correctly.sql prove the allocation adds
       back up to the order-level amount actually charged. Incremental —
-      reprocesses a trailing lookback window on every run (see DECISIONS.md).
+      reprocesses a trailing lookback window on every run.
     tests:
       - dbt_expectations.expect_table_row_count_to_be_between:
           arguments:
@@ -180,8 +178,8 @@ models:
     description: >
       One row per order, tracking it through its lifecycle (accumulating
       snapshot): placed -> shipped -> delivered -> refunded. No "picked"
-      stage — the generator never produces one (see DECISIONS.md).
-      Incremental, reprocessing a trailing lookback window on recorded_at
+      stage — the generator never produces one. Incremental, reprocessing
+      a trailing lookback window on recorded_at
       (when events were recorded, not when they happened) so late-arriving
       shipment/refund events still get picked up.
     columns:
@@ -216,8 +214,7 @@ models:
   - name: agg_daily_revenue
     description: >
       One row per order_date, aggregated purely to give dbt_expectations a
-      distribution to bound — a sanity check, not real anomaly detection
-      (see DECISIONS.md).
+      distribution to bound — a sanity check, not real anomaly detection.
     columns:
       - name: order_date
         description: Calendar date of the orders aggregated into this row.

@@ -37,7 +37,7 @@ Nordmarkt sells homeware across Germany, Austria and Switzerland: orders get shi
 ## Impact/value
 
 - **One number, not five.** `fct_order_lines.net_revenue_eur` is *the* answer to "what's our revenue", and anyone can check how it's defined.
-- **Trust that survives a follow-up question.** Every mart column has a real description, every business rule has a test, and every non-obvious call is written down in `DECISIONS.md`, so "why does this say X" always has an answer.
+- **Trust that survives a follow-up question.** Every mart column has a real description, and every business rule has a test, not just a null check.
 - **History that doesn't get silently erased.** `dim_customer` is a Type 2 dimension, so a customer moving city doesn't retroactively rewrite where their past orders shipped.
 - **Late data doesn't mean wrong data.** The incremental models pick up shipments and refunds that arrive after the fact, instead of silently under-counting until the next full rebuild.
 
@@ -60,8 +60,6 @@ flowchart LR
 - **Staging:** one model per source table: renames, casts, converts every timestamp to UTC, dedupes. No business logic, no joins.
 - **Marts:** the actual product. A small number of tables shaped so a business question maps to one obvious query.
 - **Dashboard:** a three-page Streamlit app proving the marts answer the questions they claim to.
-
-> **Note:** Why each tool and not the obvious alternative: [STACK.md](docs/STACK.md). How it's all published: [DEPLOY.md](docs/DEPLOY.md).
 
 ## Data model
 
@@ -93,4 +91,4 @@ Every column has a real description in `models/marts/_marts.yml`; this is the sh
 - **"Revenue"** is `fct_order_lines.net_revenue_eur`: quantity × unit price, minus this line's share of the order's discount. Shipping is excluded (it's cost recovery, not product revenue), though still available as `allocated_shipping_eur`.
 - **Everything is in EUR**, converted using the FX rate on the order's date, not today's.
 - **`fct_order_fulfilment` tracks placed → shipped → delivered → refunded.** No "picked" stage, because the generator never produces one. Duration columns are null until an order reaches that stage.
-- **Both fact tables are incremental**, reprocessing a trailing window on every run so late-arriving shipments/refunds still get picked up. See `DECISIONS.md`.
+- **Both fact tables are incremental**, reprocessing a trailing window on every run so late-arriving shipments/refunds still get picked up.

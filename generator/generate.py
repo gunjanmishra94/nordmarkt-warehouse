@@ -200,7 +200,7 @@ def build_shipments(orders: list[Order]) -> list[Shipment]:
     # warehouse, then "delivered" some days later. Collapsing both into a
     # single row (the previous behaviour) made hours_shipped_to_delivered
     # always exactly zero, since shipped_at and delivered_at were reading the
-    # same timestamp — see DECISIONS.md.
+    # same timestamp.
     shipments = []
     shipment_seq = 1
     for order in orders:

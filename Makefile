@@ -46,9 +46,9 @@ build-motherduck:
 	uv run dbt build --target motherduck
 
 # Pushes a fresh demo build to MotherDuck, for the live Streamlit Cloud
-# dashboard to query — see DECISIONS.md. Needs MOTHERDUCK_TOKEN in the
-# environment; this is what .github/workflows/motherduck.yml runs on a
-# schedule, not something the dashboard itself triggers.
+# dashboard to query. Needs MOTHERDUCK_TOKEN in the environment; this is
+# what .github/workflows/motherduck.yml runs on a schedule, not something
+# the dashboard itself triggers.
 demo-motherduck: generate deps
 	$(MAKE) load-motherduck
 	$(MAKE) build-motherduck

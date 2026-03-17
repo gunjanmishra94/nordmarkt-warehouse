@@ -1,7 +1,7 @@
 -- Fails (returns rows) if a delivery is recorded at or before its shipment.
 -- Guards specifically against the generator/model regressing to a single
 -- shipment event per order, which made hours_shipped_to_delivered always
--- exactly zero for every delivered order — see DECISIONS.md.
+-- exactly zero for every delivered order.
 select
     order_id,
     shipped_at,

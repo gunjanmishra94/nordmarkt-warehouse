@@ -7,7 +7,7 @@
 --
 -- Incremental: reprocesses a trailing lookback window of order_date_utc on
 -- every run (not just rows newer than the last max), so upstream rows that
--- arrive late still get picked up. See DECISIONS.md.
+-- arrive late still get picked up.
 {{
     config(
         materialized='incremental',

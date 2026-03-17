@@ -36,7 +36,7 @@ jobs:
         run: uv run dbt build --target motherduck
 
       # dim_customer's Type-2 history needs two real extracts to snapshot a
-      # diff between — see DECISIONS.md. This simulates the second one.
+      # diff between. This simulates the second one.
       - name: Simulate a later day for a slice of customers
         run: uv run python generator/mutate_customers.py --seed 43
 

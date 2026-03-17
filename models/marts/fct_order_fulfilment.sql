@@ -1,7 +1,7 @@
 -- Grain: one row per order, updated as it moves through its lifecycle
 -- (accumulating snapshot). Tracks placed -> shipped -> delivered -> refunded.
 -- There's no "picked" stage: the generator never produces one, only orders,
--- shipments (shipped/delivered) and refunds — see DECISIONS.md.
+-- shipments (shipped/delivered) and refunds.
 --
 -- Incremental like fct_order_lines: reprocesses a trailing lookback window,
 -- but on recorded_at (when the source system learned about the event) rather

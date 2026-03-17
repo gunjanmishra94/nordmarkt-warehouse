@@ -5,12 +5,11 @@ this only needs re-running if the date range or holiday rules change.
 
 Movable feasts are computed from Easter Sunday via the Meeus/Jones/Butcher
 Gregorian algorithm. State assignment is a deliberate simplification of a
-few edge cases (documented in DECISIONS.md): most notably Mariä Himmelfahrt
-is legally a municipality-level holiday in majority-Catholic parts of
-Bayern, treated here as statewide, and a couple of recently-added state
-holidays (Frauentag in Berlin/Mecklenburg-Vorpommern, Weltkindertag in
-Thüringen) are applied across the whole range rather than from their actual
-introduction year.
+few edge cases: most notably Mariä Himmelfahrt is legally a
+municipality-level holiday in majority-Catholic parts of Bayern, treated
+here as statewide, and a couple of recently-added state holidays (Frauentag
+in Berlin/Mecklenburg-Vorpommern, Weltkindertag in Thüringen) are applied
+across the whole range rather than from their actual introduction year.
 """
 
 import csv

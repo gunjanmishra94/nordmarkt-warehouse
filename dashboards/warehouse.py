@@ -10,8 +10,7 @@ Two modes, chosen by whether MOTHERDUCK_TOKEN is set:
   changes on every run, so this runs the same generator -> dlt -> dbt
   pipeline `make demo` runs locally, once, the first time anyone visits,
   then every later visitor is served from the cached connection until the
-  process restarts. See DECISIONS.md for why MotherDuck is back and why
-  local dev still doesn't touch it.
+  process restarts.
 """
 
 import os
@@ -52,7 +51,7 @@ def _build() -> None:
     _run("dbt", "deps")
     _run("dbt", "build", "--target", "duckdb")
     # dim_customer's Type-2 history needs two real extracts to snapshot a diff
-    # between — see DECISIONS.md. This simulates the second one.
+    # between. This simulates the second one.
     _run(sys.executable, "generator/mutate_customers.py", "--seed", "43")
     _run(sys.executable, "pipeline/load.py", "--target", "duckdb")
     _run("dbt", "build", "--target", "duckdb")

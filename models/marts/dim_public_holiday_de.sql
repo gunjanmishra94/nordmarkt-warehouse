@@ -1,5 +1,4 @@
--- Grain: one row per holiday_date x federal_state. See DECISIONS.md for the
--- simplifications baked into which states observe which regional holidays.
+-- Grain: one row per holiday_date x federal_state.
 select
     cast(holiday_date as date) as holiday_date,
     holiday_name,
