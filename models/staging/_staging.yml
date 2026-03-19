@@ -1,0 +1,163 @@
+version: 2
+
+models:
+  - name: stg_customers
+    description: One row per customer. Deduplicated to the latest raw load per customer_id.
+    columns:
+      - name: customer_id
+        description: Surrogate key assigned at signup. Stable for the customer's lifetime.
+        tests: [unique, not_null]
+      - name: first_name
+        description: Customer's first name as given at signup.
+      - name: last_name
+        description: Customer's last name as given at signup.
+      - name: email
+        description: Customer's email address at signup. Not tracked for changes after that.
+      - name: country
+        description: "Country the customer signed up from: DE, AT or CH."
+      - name: city
+        description: City on the customer's current address.
+      - name: address_line
+        description: Street and house number on the customer's current address.
+      - name: postal_code
+        description: >
+          Customer's postal code, coalesced from the raw `postal_code` and
+          `zip_code` columns (the source system renamed this field partway
+          through history; older rows only populate `zip_code`).
+      - name: tier
+        description: "Subscription tier at signup: basic, plus or premium."
+      - name: signup_date
+        description: Calendar date the customer created their account.
+      - name: created_at_utc
+        description: Timestamp the customer record was created, converted to UTC.
+
+  - name: stg_products
+    description: One row per product. Deduplicated to the latest raw load per product_id.
+    columns:
+      - name: product_id
+        description: Surrogate key assigned when the product was added to the catalog.
+        tests: [unique, not_null]
+      - name: name
+        description: Product display name.
+      - name: category
+        description: One of the eight top-level catalog categories.
+      - name: supplier
+        description: Supplier the product is sourced from.
+      - name: price_eur
+        description: Current list price in EUR. Not tracked for changes over time.
+      - name: created_at_utc
+        description: Timestamp the product was added to the catalog, converted to UTC.
+
+  - name: stg_orders
+    description: >
+      One row per order_id. A small fraction of orders arrive twice in raw
+      under the same id (a duplicate-ingestion event); the latest load wins.
+    columns:
+      - name: order_id
+        description: Order identifier assigned when the order was placed.
+        tests: [unique, not_null]
+      - name: customer_id
+        description: Customer who placed the order.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_customers')
+                field: customer_id
+      - name: order_date_utc
+        description: Timestamp the order was placed, converted to UTC from whatever offset the source recorded it in.
+      - name: currency
+        description: "Currency the order was charged in: EUR, or CHF for customers based in CH."
+      - name: status
+        description: "Current lifecycle status: placed, shipped, delivered, cancelled or refunded."
+
+  - name: stg_order_lines
+    description: One row per product within an order (order-line grain, not order grain).
+    columns:
+      - name: order_line_id
+        description: Surrogate key for the order/product combination.
+        tests: [unique, not_null]
+      - name: order_id
+        description: Order this line belongs to.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: product_id
+        description: Product sold on this line.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+      - name: quantity
+        description: Number of units of this product on this line.
+      - name: unit_price_eur
+        description: Price per unit in EUR at the time of sale.
+
+  - name: stg_shipments
+    description: >
+      One row per shipment_id, tracking the pick/ship/deliver events for
+      orders that shipped. recorded_at_utc can trail occurred_at_utc by
+      several days, since shipment events sometimes arrive late.
+    columns:
+      - name: shipment_id
+        description: Surrogate key for the shipment event.
+        tests: [unique, not_null]
+      - name: order_id
+        description: Order this shipment belongs to.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: carrier
+        description: Courier the shipment was handed to.
+      - name: status
+        description: "Shipment status at the time of this event: shipped or delivered."
+      - name: occurred_at_utc
+        description: When the shipment event actually happened, converted to UTC.
+      - name: recorded_at_utc
+        description: When the shipment event was recorded in the source system, converted to UTC. Can be later than occurred_at_utc.
+
+  - name: stg_refunds
+    description: >
+      One row per refund_id, for orders that were cancelled or refunded.
+      recorded_at_utc can trail occurred_at_utc by several days.
+    columns:
+      - name: refund_id
+        description: Surrogate key for the refund event.
+        tests: [unique, not_null]
+      - name: order_id
+        description: Order this refund applies to.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_orders')
+                field: order_id
+      - name: amount_eur
+        description: Amount refunded, in EUR.
+      - name: reason
+        description: "Reason code the customer selected: damaged, wrong_item, changed_mind or late_delivery."
+      - name: occurred_at_utc
+        description: When the refund actually happened, converted to UTC.
+      - name: recorded_at_utc
+        description: When the refund was recorded in the source system, converted to UTC. Can be later than occurred_at_utc.
+
+  - name: stg_fx_rates
+    description: One row per calendar date for the EUR->CHF pair, from the Frankfurter public API.
+    columns:
+      - name: rate_date
+        description: Calendar date the rate applies to.
+        tests: [unique, not_null]
+      - name: base_currency
+        description: Always EUR — the currency the rate is quoted from.
+      - name: quote_currency
+        description: Always CHF — the currency the rate is quoted in.
+      - name: rate
+        description: Units of quote_currency per 1 unit of base_currency on rate_date.

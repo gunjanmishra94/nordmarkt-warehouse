@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    description: Loaded untouched by dlt from the generator's Parquet output, plus daily FX rates from a public API.
+    tables:
+      - name: customers
+      - name: products
+      - name: orders
+      - name: order_lines
+      - name: shipments
+      - name: refunds
+      - name: fx_rates

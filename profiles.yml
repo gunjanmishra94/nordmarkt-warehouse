@@ -1,0 +1,19 @@
+kiezkauf:
+  target: duckdb
+  outputs:
+    duckdb:
+      type: duckdb
+      path: data/kiezkauf.duckdb
+      schema: main
+      threads: 4
+
+    snowflake:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT', '') }}"
+      user: "{{ env_var('SNOWFLAKE_USER', '') }}"
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH', '~/.ssh/snowflake_key.p8') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE', 'TRANSFORMER') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE', 'KIEZKAUF') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE', 'WH_XS') }}"
+      schema: staging
+      threads: 4

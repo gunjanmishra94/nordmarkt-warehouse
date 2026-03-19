@@ -1,0 +1,37 @@
+# Python / uv
+__pycache__/
+*.py[cod]
+.venv/
+.uv/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# dbt
+target/
+dbt_packages/
+dbt_modules/
+logs/
+.user.yml
+
+# DuckDB
+*.duckdb
+*.duckdb.wal
+data/
+
+# Node / Evidence dashboard
+node_modules/
+dashboards/.evidence/
+dashboards/build/
+
+# Build output
+site/
+
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/

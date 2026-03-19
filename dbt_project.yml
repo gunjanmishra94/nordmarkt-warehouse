@@ -1,0 +1,19 @@
+name: "kiezkauf"
+version: "1.0.0"
+config-version: 2
+profile: "kiezkauf"
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  kiezkauf:
+    staging:
+      +materialized: view
