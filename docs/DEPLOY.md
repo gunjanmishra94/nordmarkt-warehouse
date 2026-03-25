@@ -93,11 +93,22 @@ jobs:
         run: uv run python generator/generate.py --profile demo --seed 42
 
       - name: Load raw data
-        run: uv run dlt pipeline kiezkauf run
+        run: uv run python pipeline/load.py --target duckdb
 
-      - name: Build the warehouse
+      - name: Install dbt packages
+        run: uv run dbt deps
+
+      - name: Build the warehouse (baseline extract)
+        run: uv run dbt build --target duckdb
+
+      # dim_customer's Type-2 history needs two real extracts to snapshot a
+      # diff between — see DECISIONS.md. This simulates the second one.
+      - name: Simulate a later day for a slice of customers
+        run: uv run python generator/mutate_customers.py --seed 43
+
+      - name: Reload and rebuild (captures the customer snapshot diff)
         run: |
-          uv run dbt deps
+          uv run python pipeline/load.py --target duckdb
           uv run dbt build --target duckdb
 
       - name: Generate dbt docs
@@ -170,8 +181,11 @@ jobs:
       - run: uv sync --frozen
       - run: uv run pre-commit run --all-files
       - run: uv run python generator/generate.py --profile demo --seed 42
-      - run: uv run dlt pipeline kiezkauf run
+      - run: uv run python pipeline/load.py --target duckdb
       - run: uv run dbt deps
+      - run: uv run dbt build --target duckdb
+      - run: uv run python generator/mutate_customers.py --seed 43
+      - run: uv run python pipeline/load.py --target duckdb
       - run: uv run dbt build --target duckdb
 ```
 
@@ -185,37 +199,60 @@ Later projects extend this with Snowflake pull request environments built on zer
 
 Target: a stranger gets a working warehouse in under two minutes with no accounts.
 
-`Makefile`
+`Makefile` (the real one — see the repo root)
 
 ```make
-.PHONY: demo generate load build docs clean
+.PHONY: demo generate deps load snapshot mutate build docs full snowflake clean
 
-demo: generate load build docs
+export DBT_PROFILES_DIR := .
+
+# dim_customer's Type-2 history needs at least two real extracts to snapshot
+# a diff between. `dbt build` already runs the snapshot in DAG order (after
+# staging, before the marts that depend on it), so this runs build once
+# against the baseline data, mutates a slice of customers to simulate a
+# later day, then builds again to capture the diff. Repeated targets are
+# invoked as recursive sub-makes since make dedupes repeated prerequisites.
+demo: generate deps
+	$(MAKE) load
+	$(MAKE) build
+	$(MAKE) mutate
+	$(MAKE) load
+	$(MAKE) build
 
 generate:
 	uv run python generator/generate.py --profile demo --seed 42
 
+deps:
+	uv run dbt deps
+
 load:
-	uv run dlt pipeline kiezkauf run
+	uv run python pipeline/load.py --target duckdb
+
+snapshot:
+	uv run dbt snapshot --target duckdb
+
+mutate:
+	uv run python generator/mutate_customers.py --seed 43
 
 build:
-	uv run dbt deps && uv run dbt build --target duckdb
+	uv run dbt build --target duckdb
 
 docs:
 	uv run dbt docs generate --target duckdb && uv run dbt docs serve
-
-dash:
-	cd dashboards && npm run sources && npm run dev
 
 full:
 	uv run python generator/generate.py --profile full --seed 42
 
 snowflake:
+	uv run python pipeline/load.py --target snowflake
+	uv run dbt snapshot --target snowflake
 	uv run dbt build --target snowflake
 
 clean:
-	rm -rf target dbt_packages data/*.duckdb dashboards/.evidence
+	rm -rf target dbt_packages data/generated data/*.duckdb*
 ```
+
+There's no `dash` target yet — the Evidence dashboard doesn't exist until Stage 3.
 
 So the README instruction is two lines:
 

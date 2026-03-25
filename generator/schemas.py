@@ -39,6 +39,8 @@ class Order(BaseModel):
     order_date: str
     currency: str
     status: str
+    shipping_amount_local: float
+    discount_amount_local: float
 
 
 class OrderLine(BaseModel):

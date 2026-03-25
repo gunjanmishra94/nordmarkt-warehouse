@@ -105,16 +105,16 @@ Get data flowing end to end, even if it's thin.
 
 Build the tables people will actually use.
 
-- [ ] `dim_date`, including German public holidays by federal state
-- [ ] `dim_product`
-- [ ] `dim_customer` as a dbt snapshot, tracking address and tier changes over time
-- [ ] `fct_order_lines`, with the grain stated explicitly at the top of the model and in the docs
-- [ ] Allocate shipping and discounts across lines, with a test proving the allocation sums correctly
-- [ ] Convert everything to EUR using the rate that applied *on the order date*, not today's rate
-- [ ] Write column-level descriptions for every field in the marts. Every single one.
-- [ ] Start `DECISIONS.md` and record the choices made so far
+- [x] `dim_date`, including German public holidays by federal state
+- [x] `dim_product`
+- [x] `dim_customer` as a dbt snapshot, tracking address and tier changes over time
+- [x] `fct_order_lines`, with the grain stated explicitly at the top of the model and in the docs
+- [x] Allocate shipping and discounts across lines, with a test proving the allocation sums correctly
+- [x] Convert everything to EUR using the rate that applied *on the order date*, not today's rate
+- [x] Write column-level descriptions for every field in the marts. Every single one.
+- [x] Start `DECISIONS.md` and record the choices made so far
 
-**Done when:** someone can answer "revenue by product category by month, in euros" with a single `SELECT`.
+**Done when:** someone can answer "revenue by product category by month, in euros" with a single `SELECT`. **Met** — see `models/marts/_marts.yml` and `DECISIONS.md` for the modelling choices behind it.
 
 ### Stage 3 — Make it real
 
@@ -188,6 +188,6 @@ Terms that show up in the code, in plain words.
 
 ## Status
 
-Stage 1 done: `make demo` generates, loads and builds a green `dbt build` against DuckDB, with the deliberate mess and basic tests in place. The Snowflake target is configured but unproven — no trial account yet.
+Stage 1 and Stage 2 done. `make demo` generates, loads (twice, to give `dim_customer`'s snapshot real history to diff), and builds the full star schema against DuckDB — dims, `fct_order_lines` with tested shipping/discount allocation, and revenue-by-category-by-month answerable in one `SELECT`. The Snowflake target is configured but unproven — no trial account yet.
 
 Stage 3 has one dependency the other two don't: the Snowflake run needs a trial account, and the credit and query-profile figures can only be captured while it's live. Everything else runs locally with no account.

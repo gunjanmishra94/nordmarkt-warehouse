@@ -60,6 +60,20 @@ REFUND_ELIGIBLE_STATUSES = {"cancelled", "refunded"}
 # is relative to that eligible pool, so refunds end up on ~5% of all orders.
 REFUND_RATE_AMONG_ELIGIBLE = 0.05 / 0.15
 
+# Flat rates as they'd actually be published at checkout in each currency, not
+# derived from an FX rate — that's what makes converting them to EUR later
+# (using the rate on the order's date) a real conversion instead of a no-op.
+SHIPPING_OPTIONS = {
+    "EUR": [0.0, 3.99, 4.99, 6.99],
+    "CHF": [0.0, 4.5, 5.9, 7.9],
+}
+SHIPPING_WEIGHTS = [0.2, 0.3, 0.35, 0.15]
+DISCOUNT_RATE = 0.2
+DISCOUNT_RANGE = {
+    "EUR": (5.0, 20.0),
+    "CHF": (5.0, 22.0),
+}
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate Kiezkauf's messy operational history.")
@@ -141,6 +155,9 @@ def build_orders(n: int, customers: list[Customer], start: date, end: date) -> l
     for i in range(1, n + 1):
         customer = random.choice(customers)
         currency = "CHF" if customer.country == "CH" else "EUR"
+        discount = 0.0
+        if random.random() < DISCOUNT_RATE:
+            discount = round(random.uniform(*DISCOUNT_RANGE[currency]), 2)
         orders.append(
             Order(
                 order_id=f"ORD-{i:07d}",
@@ -148,6 +165,10 @@ def build_orders(n: int, customers: list[Customer], start: date, end: date) -> l
                 order_date=random_datetime(start, end, BERLIN).isoformat(),
                 currency=currency,
                 status=random.choices(ORDER_STATUSES, weights=ORDER_STATUS_WEIGHTS)[0],
+                shipping_amount_local=random.choices(
+                    SHIPPING_OPTIONS[currency], weights=SHIPPING_WEIGHTS
+                )[0],
+                discount_amount_local=discount,
             )
         )
 

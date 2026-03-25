@@ -25,15 +25,20 @@ Tracks what's actually been built against README.md's three-stage plan. Update t
 
 ## Stage 2 — The star schema
 
-**Status: not started.**
+**Status: done.**
 
-- [ ] `dim_date`, including German public holidays by federal state
-- [ ] `dim_product`
-- [ ] `dim_customer` as a dbt snapshot (Type 2 SCD over address/tier changes)
-- [ ] `fct_order_lines`, grain stated explicitly, shipping/discount allocation across lines + a test that the allocation sums back correctly
-- [ ] Convert to EUR using the FX rate on the order date (data is already loaded via `stg_fx_rates`; not yet used anywhere)
-- [ ] Column-level descriptions for every mart field
-- [ ] Start `DECISIONS.md`
+- [x] `dim_date`, including German public holidays by federal state — via `dbt_utils.date_spine` + a computed seed (`scripts/generate_de_holidays.py` → `seeds/de_public_holidays.csv`); holiday detail kept in a separate `dim_public_holiday_de` so `dim_date` stays one row per day
+- [x] `dim_product`, with a derived `price_band`
+- [x] `dim_customer` as a **real** dbt snapshot (`snapshots/dim_customer_snapshot.sql`, `strategy: check`) — `generator/mutate_customers.py` mutates ~3% of customers between two `make demo` build passes so the snapshot captures a genuine diff, not a fabricated one
+- [x] `fct_order_lines`, grain stated explicitly, shipping/discount allocated proportionally across lines
+- [x] Two singular tests proving the allocation sums back to the order-level amount (`tests/assert_shipping_allocation_sums_correctly.sql`, `tests/assert_discount_allocation_sums_correctly.sql`)
+- [x] Shipping/discount (captured in local currency) converted to EUR using the FX rate on the order's date, via the `to_eur` macro
+- [x] Column-level descriptions for every mart field (`models/marts/_marts.yml`)
+- [x] `DECISIONS.md` started — 5 entries so far
+
+**Verified:** clean-tree `uv sync && make demo` runs both build passes (57/57 each); at least 147 customers have genuine 2-version snapshot history with correct `valid_from`/`valid_to`; the actual done-when query (revenue by category by month, in EUR, one `SELECT`) returns correct numbers; `pre-commit run --all-files` passes.
+
+**New generator fields this stage needed** (not anticipated in Stage 1): `Order.shipping_amount_local` and `Order.discount_amount_local` — see DECISIONS.md for why they're in local currency, not EUR.
 
 ---
 

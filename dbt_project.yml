@@ -17,3 +17,5 @@ models:
   kiezkauf:
     staging:
       +materialized: view
+    marts:
+      +materialized: table
