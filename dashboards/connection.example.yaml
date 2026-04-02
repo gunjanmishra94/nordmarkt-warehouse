@@ -1,0 +1,6 @@
+# Copy to connection.yaml (already gitignored — never commit real tokens)
+# and fill in a real MotherDuck service token. See docs/DEPLOY.md and
+# DECISIONS.md for why MotherDuck is the connector here.
+type: motherduck
+token: your-motherduck-service-token
+database: kiezkauf

@@ -80,9 +80,11 @@ The risk is that generated data reads as fake and unimpressive. The defence is t
 
 **Metabase** is free and open source, but the dashboards live in its own database. They can't be reviewed in a pull request, and they don't survive a clone.
 
-**Evidence** writes dashboards as markdown files with SQL in them. They sit in the repo, they get code-reviewed like anything else, and they deploy free to a public URL. A reviewer can read the chart's query without opening a tool.
+**Evidence** writes dashboards as markdown files with SQL in them. They sit in the repo, they get code-reviewed like anything else. A reviewer can read the chart's query without opening a tool.
 
-**Verdict:** Evidence, because "the dashboard is in the repo" fits everything else about this project.
+**Verdict:** Evidence, because "the dashboard is in the repo" fits everything else about this project — though not for the reason below anymore.
+
+**Update, Stage 3:** the free/static/no-login version above ("Legacy Evidence") is deprecated. Current Evidence ("Studio") needs a live connection to one warehouse and its own account; the closest fit for us is MotherDuck (hosted DuckDB, its own free tier), used as that connection. Full reasoning in DECISIONS.md — the short version is that everything else about the choice still holds (markdown+SQL, in the repo, reviewable), it's just no longer the login-free static build originally described here.
 
 ---
 
@@ -186,7 +188,7 @@ Each of these is a tool I could add. Not adding them is the point.
 
 Nearly nothing.
 
-DuckDB, dbt Core, dlt, Evidence, uv and every dbt package here are free and open source. GitHub Actions is free at this volume. Evidence deploys free to Vercel or Netlify.
+DuckDB, dbt Core, dlt, uv and every dbt package here are free and open source. GitHub Actions is free at this volume. Evidence Studio and MotherDuck both have free tiers usable at this scale.
 
 Snowflake is the only line item: a 30-day trial with $400 of credits, then roughly €20 to €30 a month if I keep it warm. The plan is to develop on DuckDB first and only start the trial once there's something worth running, which stretches the window to cover the whole build. After it expires the project keeps working locally.
 

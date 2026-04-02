@@ -82,6 +82,20 @@ Two of these deserve a note.
 
 ---
 
+## What the numbers mean
+
+Every column has a real description in `models/marts/_marts.yml` — this is the short version of the ones people actually ask about.
+
+**"Revenue" means `fct_order_lines.net_revenue_eur`**: quantity × unit price, minus this line's share of the order's discount. Shipping is deliberately excluded — it's cost recovery, not product revenue, though it's still available (`allocated_shipping_eur`) for anything that needs total order economics.
+
+**Everything is in EUR, converted using the rate on the order's date, not today's.** Shipping and discount are the only amounts actually captured in a non-EUR currency (CHF, for Swiss customers) — the product catalog is EUR-denominated throughout. That conversion happens once per order, using the EUR→CHF rate `stg_fx_rates` pulled from the Frankfurter API for that specific date, before shipping/discount get allocated across the order's lines.
+
+**`fct_order_fulfilment` tracks placed → shipped → delivered → refunded** — not the picked stage sometimes used as an example, because the generator never produces a picked event. Duration columns (`hours_placed_to_shipped` etc.) are null until an order reaches that stage.
+
+**Both fact tables are incremental**, reprocessing a trailing window of recent activity on every run rather than a full rebuild, so that upstream rows arriving late (which the generator deliberately creates for shipments and refunds) still get picked up. See `DECISIONS.md` for why, and `macros/backfill_incremental_model.sql` for forcing a full historical reprocess of an older window.
+
+---
+
 ## The build plan
 
 Three stages. Each stage ends with something that runs, so the project is never in a half-broken state.
@@ -120,17 +134,17 @@ Build the tables people will actually use.
 
 The difference between a demo and something you'd put in production.
 
-- [ ] Convert `fct_order_lines` to an incremental model so it doesn't rebuild from scratch every run
-- [ ] Handle late-arriving events properly with a lookback window, and write a backfill macro
-- [ ] Build `fct_order_fulfilment` as an accumulating snapshot, tracking each order through placed → picked → shipped → delivered with durations between each step
-- [ ] Add business-rule tests: refunds never exceed order value, no delivery date before its order date, no negative quantities
-- [ ] Add distribution tests with `dbt_expectations` to catch the day revenue silently triples
+- [x] Convert `fct_order_lines` to an incremental model so it doesn't rebuild from scratch every run
+- [x] Handle late-arriving events properly with a lookback window, and write a backfill macro
+- [x] Build `fct_order_fulfilment` as an accumulating snapshot, tracking each order through placed → picked → shipped → delivered with durations between each step
+- [x] Add business-rule tests: refunds never exceed order value, no delivery date before its order date, no negative quantities
+- [x] Add distribution tests with `dbt_expectations` to catch the day revenue silently triples
 - [ ] Run the whole thing on Snowflake, note the credit cost, tune the warehouse size
 - [ ] Publish dbt docs and the dashboard to GitHub Pages (see [DEPLOY.md](docs/DEPLOY.md))
-- [ ] Build three Evidence pages: revenue overview, category trends, fulfilment timing
-- [ ] Write the README section explaining what the numbers mean
+- [x] Build three Evidence pages: revenue overview, category trends, fulfilment timing
+- [x] Write the README section explaining what the numbers mean
 
-**Done when:** a stranger can clone the repo, run it locally, read the docs, and understand every table without asking me a question.
+**Done when:** a stranger can clone the repo, run it locally, read the docs, and understand every table without asking me a question. **Mostly met** — everything DuckDB-based is real and verified. Two things need an account only a person can create: the Snowflake run, and logging the Evidence Studio dashboard in (`evidence login`) against a MotherDuck token — see DECISIONS.md. The GitHub Actions workflows exist (`.github/workflows/`) but haven't actually run, since this repo has no GitHub remote yet.
 
 ---
 
@@ -188,6 +202,6 @@ Terms that show up in the code, in plain words.
 
 ## Status
 
-Stage 1 and Stage 2 done. `make demo` generates, loads (twice, to give `dim_customer`'s snapshot real history to diff), and builds the full star schema against DuckDB — dims, `fct_order_lines` with tested shipping/discount allocation, and revenue-by-category-by-month answerable in one `SELECT`. The Snowflake target is configured but unproven — no trial account yet.
+Stages 1 through 3 are functionally done against DuckDB: `make demo` generates, loads (twice, for real snapshot/lookback history), and builds the full warehouse — star schema, incremental facts, business-rule and distribution tests, all passing. Revenue-by-category-by-month is answerable in one `SELECT`.
 
-Stage 3 has one dependency the other two don't: the Snowflake run needs a trial account, and the credit and query-profile figures can only be captured while it's live. Everything else runs locally with no account.
+Three things are configured but unproven, each blocked on an account only a person can create, not on anything left to build: the Snowflake run (trial account), the GitHub Pages publish (no GitHub remote yet), and the Evidence Studio dashboard (needs `evidence login` plus a MotherDuck token — Evidence changed products mid-project; see DECISIONS.md). Everything else runs locally with no account.

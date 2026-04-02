@@ -51,3 +51,43 @@ Short entries: what was chosen, what was rejected, and why. Added to in the same
 **Chosen:** budget < €25, mid < €100, premium ≥ €100.
 
 **Why:** a simple, fixed cut rather than a percentile-based or category-relative banding. Good enough for a homeware catalog at this scale; would need revisiting if the product mix changed substantially.
+
+---
+
+## Incremental models reprocess a trailing lookback window, not "just what's new"
+
+**Chosen:** `fct_order_lines` and `fct_order_fulfilment` are both `materialized='incremental'` with `incremental_strategy='delete+insert'`. On every run they recompute a trailing window (`var('late_arrival_lookback_days', 7)`) rather than only rows created since the last run. `fct_order_lines` anchors the window on `order_date_utc`; `fct_order_fulfilment` anchors on `recorded_at` (when shipment/refund events were recorded, via a `greatest()` across every stage), because that's the field that can genuinely trail behind when something happened.
+
+**Rejected:** `incremental_strategy='merge'` (not portable — dbt-duckdb's merge support and Snowflake's differ in ways not worth tracking down for this project), and a naive "only rows newer than max(loaded_at)" filter, which would never catch a shipment recorded late for an old order.
+
+**Why:** this is verified, not assumed — see the manual test in this session: an order with no shipment got one inserted with `recorded_at` past the table's existing watermark, and a plain `dbt run --select fct_order_fulfilment` (no `--full-refresh`) picked it up correctly. `macros/backfill_incremental_model.sql` exists for the rarer case of fixing a window further back than the lookback reaches — it deletes the window, but the model's own filter is still anchored at `max(date_column) - lookback_days`, so reprocessing an old window needs `--vars` widened enough to reach it (e.g. days-since-today), not just the delete.
+
+---
+
+## `fct_order_fulfilment` has no "picked" stage
+
+**Chosen:** tracks placed → shipped → delivered → refunded.
+
+**Why:** the generator only ever produces orders, shipments (status shipped/delivered) and refunds — never a distinct "picked" event. Adding one would mean extending the generator for a stage nothing downstream currently needs; the four stages tracked are the ones we actually have data for.
+
+---
+
+## `dbt_expectations` here is a sanity bound, not anomaly detection
+
+**Chosen:** `expect_table_row_count_to_be_between` on `fct_order_lines`, `expect_column_values_to_be_between` on quantity/net_revenue_eur, and the same on a small aggregate model (`agg_daily_revenue`) built solely to give a distribution test something to check.
+
+**Rejected:** trying to detect "today's revenue is 3x a normal day" as a relative, rolling-average anomaly.
+
+**Why:** true day-over-day anomaly detection needs a baseline and is explicitly a later-project concern per docs/STACK.md ("Elementary for freshness and anomaly monitoring"). Static bounds here catch the same class of gross error the README's example describes (a silent multiplication or a broken join) without pretending to be a monitoring system.
+
+---
+
+## The dashboard runs on Evidence Studio + MotherDuck, not the static Evidence docs/STACK.md originally chose
+
+**Chosen:** `dashboards/` is an Evidence Studio project connecting to MotherDuck (hosted DuckDB) as a "direct connector." `pipeline/load.py --target motherduck` and `profiles.yml`'s `motherduck` target let the same dbt project build there.
+
+**Rejected:** the original static, no-login, DuckDB-in-browser design — it's no longer available. Also rejected: pinning an old, unmaintained Evidence version just to keep that design; and switching to a different dashboard tool entirely.
+
+**Why:** Evidence pivoted from a static site generator to a hosted product ("Evidence Studio") between when docs/STACK.md was written and this stage. Confirmed directly from their repo (`evidence-dev/evidence`, `docs/migration-guide.mdx`): the old static/WASM/no-login mode is explicitly named "Legacy Evidence" and deprecated. Studio requires `evidence login` and exactly one live server-side "direct connector" — the supported list is BigQuery, ClickHouse, Cube, Databricks, Fabric, MotherDuck, Postgres, Snowflake. No local-file DuckDB connector exists. MotherDuck is the only DuckDB-family option, so it's the one that keeps the rest of this project's story (dbt/dlt targeting the same warehouse family, free tier, no company account) mostly intact.
+
+**What this costs:** both MotherDuck and Evidence Studio need their own account/token — genuinely new external dependencies this project didn't have before, in the same "configured but can't be proven without an account" bucket as Snowflake. Unlike Snowflake, an actual login (`evidence login`, browser-based) is required even to view the dashboard locally — there's no equivalent to `dbt build --target duckdb` that stays entirely offline. The three dashboard pages (`dashboards/pages/*.md`) were written against the real, current Markdoc component syntax (checked via `evidence docs component <name>`, which works without logging in) rather than guessed, but the table addressing (`main.<table>`, matching our dbt schema) is inferred from the MotherDuck connector docs, not verified against a live connection.
