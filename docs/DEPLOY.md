@@ -2,7 +2,7 @@
 
 A portfolio project nobody can look at is a private hobby. This file covers how Kiezkauf gets in front of people, and the configuration to make it happen.
 
-The guiding constraint: **the permanent demo cannot depend on Snowflake.** The trial expires after 30 days, and a dead link is worse than no link. Everything public runs on DuckDB. Snowflake gets captured, not hosted.
+The guiding constraint: **the permanent demo cannot depend on an account only I have.** Everything public runs on DuckDB.
 
 ---
 
@@ -166,8 +166,6 @@ jobs:
 
 This is what makes the green badge in the README mean something. Every pull request generates data, builds every model and runs every test from scratch in about a minute, entirely free.
 
-Later projects extend this with Snowflake pull request environments built on zero-copy clones and `--select state:modified+ --defer`. Stage one doesn't need that, and adding it before there's a slow build to speed up would be solving a problem you don't have.
-
 ---
 
 ## Clone and run
@@ -177,7 +175,7 @@ Target: a stranger gets a working warehouse in under two minutes with no account
 `Makefile` (the real one — see the repo root)
 
 ```make
-.PHONY: demo generate deps load snapshot mutate build docs full snowflake clean
+.PHONY: demo generate deps load snapshot mutate build docs full clean
 
 export DBT_PROFILES_DIR := .
 
@@ -217,11 +215,6 @@ docs:
 
 full:
 	uv run python generator/generate.py --profile full --seed 42
-
-snowflake:
-	uv run python pipeline/load.py --target snowflake
-	uv run dbt snapshot --target snowflake
-	uv run dbt build --target snowflake
 
 clean:
 	rm -rf target dbt_packages data/generated data/*.duckdb*
@@ -276,76 +269,16 @@ If the numbers on the public dbt docs / dashboard don't match what a reviewer ge
 
 ## Two dataset sizes
 
-A large dataset makes CI and the dev loop slow for no benefit. But Snowflake cost and performance numbers are meaningless at small volumes.
+A large dataset makes CI and the dev loop slow for no benefit, but a bigger one is still useful for exercising the incremental/backfill logic at a realistic scale.
 
 Two profiles in the generator solve it:
 
 | Profile | Rough size | Used for |
 |---|---|---|
 | `demo` | ~5k customers, ~50k order lines | Public site, CI, Codespaces |
-| `full` | ~50k customers, ~500k order lines | Snowflake runs, cost and performance work |
+| `full` | ~50k customers, ~500k order lines | Local performance/backfill work |
 
 Same models, same tests, same seed. Only the volume changes.
-
----
-
-## Snowflake: a recording window, not a host
-
-Snowflake can't be in the permanent demo, so treat the 30-day trial as a window for **capturing evidence of things DuckDB cannot show**.
-
-While the trial is live, collect:
-
-- the query profile on the heaviest model
-- warehouse sizing and credit consumption before and after tuning
-- a clustering key comparison, with pruning statistics
-- cost attribution from `ACCOUNT_USAGE`
-- a short screen recording of `dbt build --target snowflake` running end to end
-
-These go in the README under *Running on Snowflake*. Screenshots are permanent; the account isn't.
-
-### If you're actively interviewing
-
-It's worth roughly €25 a month to keep a small account alive so you can run live if asked. A weekly scheduled run keeps recent query history in `ACCOUNT_USAGE`, which is what the FinOps project later feeds on.
-
-`.github/workflows/snowflake-weekly.yml`
-
-```yaml
-name: Snowflake weekly
-
-on:
-  schedule:
-    - cron: "0 5 * * 1"
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    env:
-      DBT_PROFILES_DIR: ./
-      SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-      SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
-      SNOWFLAKE_ROLE: TRANSFORMER
-      SNOWFLAKE_WAREHOUSE: WH_XS
-      SNOWFLAKE_DATABASE: KIEZKAUF
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --frozen
-
-      - name: Write the private key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > ~/.ssh/snowflake_key.p8
-          chmod 600 ~/.ssh/snowflake_key.p8
-
-      - run: uv run python generator/generate.py --profile full --seed 42
-      - run: uv run dlt pipeline kiezkauf run --destination snowflake
-      - run: uv run dbt deps && uv run dbt build --target snowflake
-```
-
-**Use key-pair authentication, not a password.** It's a small thing and reviewers notice it. Snowflake is also deprecating single-factor password auth for service users, so it's the correct answer regardless.
-
-Secrets needed: `SNOWFLAKE_ACCOUNT`, `SNOWFLAKE_USER`, `SNOWFLAKE_PRIVATE_KEY`. Nothing else, and none of them ever touch the repo.
 
 ---
 
@@ -359,7 +292,7 @@ Rehearse a three-minute walkthrough. Run it from `make demo` locally, never from
 4. **`dbt build` running live.** It takes seconds on DuckDB.
 5. **A failing test.** Break a business rule on purpose and show the error message. This is the part people remember, because it proves the tests do something.
 
-Three rules: never depend on the internet, never depend on the Snowflake trial, and always know what the last command printed.
+Two rules: never depend on the internet, and always know what the last command printed.
 
 ---
 
@@ -372,7 +305,6 @@ Three rules: never depend on the internet, never depend on the Snowflake trial, 
 - [ ] Devcontainer committed, Codespaces button verified
 - [ ] `make demo` works from a clean clone on a machine that isn't yours
 - [ ] Generator seeded, seed committed
-- [ ] Snowflake screenshots captured before the trial expires
 - [ ] Three-minute walkthrough rehearsed out loud
 
 ---
@@ -380,7 +312,5 @@ Three rules: never depend on the internet, never depend on the Snowflake trial, 
 ## What it costs
 
 GitHub Pages, GitHub Actions and Codespaces are free at this scale. Public repositories get unlimited Actions minutes on standard runners, and this build takes a couple of minutes.
-
-Snowflake is the only real expense, and only if you choose to keep it alive past the trial.
 
 **Permanent hosting: €0.**

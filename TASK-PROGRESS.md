@@ -6,10 +6,10 @@ Tracks what's actually been built against README.md's three-stage plan. Update t
 
 ## Stage 1 — Foundations
 
-**Status: done**, except the one item that structurally can't be finished yet.
+**Status: done.**
 
 - [x] Repo/dbt scaffolding: `dbt_project.yml`, `profiles.yml`, folder structure (`generator/`, `pipeline/`, `models/staging/`, `macros/`)
-- [ ] Two targets configured **and proven** — `duckdb` and `snowflake` are both configured in `profiles.yml` and `.env.example`, but only `duckdb` has actually been run. No Snowflake trial account exists yet.
+- [x] `duckdb` target configured and proven in `profiles.yml`. (Snowflake was dropped as a target — see DECISIONS.md — so there's no second target left to prove.)
 - [x] Data generator (`generator/generate.py`, `generator/schemas.py`) — customers, products, orders, order lines, shipments, refunds; seeded and deterministic
 - [x] Deliberate mess: duplicate order IDs, late-arriving shipment/refund events, mixed timezones (Berlin/Zurich/UTC), mid-history `zip_code` → `postal_code` rename
 - [x] dlt load (`pipeline/load.py`) into DuckDB, plus daily EUR/CHF rates from the Frankfurter API
@@ -18,8 +18,6 @@ Tracks what's actually been built against README.md's three-stage plan. Update t
 - [x] SQLFluff + pre-commit wired up and passing
 
 **Verified:** `uv sync && make demo` runs clean from a fresh tree with no pre-set env vars; `dbt build --target duckdb` passes 31/31 (7 models + 24 tests); same-seed reruns produce identical row counts.
-
-**Pending:** get a Snowflake trial account and run `make snowflake` to actually prove the second target, not just configure it.
 
 ---
 
@@ -44,7 +42,7 @@ Tracks what's actually been built against README.md's three-stage plan. Update t
 
 ## Stage 3 — Make it real
 
-**Status: done against DuckDB.** Three items blocked on external accounts, not on remaining build work.
+**Status: done against DuckDB.** Two items blocked on external accounts, not on remaining build work. Snowflake was dropped as a target this stage — see DECISIONS.md — so the credit-cost/warehouse-sizing/`ACCOUNT_USAGE` line that used to be pending here is gone rather than pending.
 
 - [x] `fct_order_lines` converted to incremental (`delete+insert`, trailing lookback window on `order_date_utc`)
 - [x] `fct_order_fulfilment` as an accumulating snapshot (placed → shipped → delivered → refunded; no "picked" stage — see DECISIONS.md), incremental with a lookback on `recorded_at`
@@ -52,8 +50,7 @@ Tracks what's actually been built against README.md's three-stage plan. Update t
 - [x] Business-rule singular tests: `assert_refunds_never_exceed_order_value`, `assert_no_delivery_before_order_date`, `assert_no_negative_quantities`
 - [x] `dbt_expectations` distribution tests on `fct_order_lines` and a new `agg_daily_revenue` (row count + value bounds; a sanity check, not anomaly detection — see DECISIONS.md)
 - [x] README "What the numbers mean" section
-- [x] `DECISIONS.md` — 4 new entries this stage (lookback/backfill design, no-picked-stage, dbt_expectations scope, the Evidence pivot)
-- [ ] Snowflake run: credit cost, warehouse sizing, clustering keys, `ACCOUNT_USAGE` cost attribution — still blocked on a trial account
+- [x] `DECISIONS.md` — new entries this stage (lookback/backfill design, no-picked-stage, dbt_expectations scope, the Evidence pivot, dropping Snowflake)
 - [ ] Publish dbt docs to GitHub Pages — workflow files exist (`.github/workflows/demo.yml`, `ci.yml`, `.devcontainer/devcontainer.json`) but have never run; no GitHub remote yet
 - [~] Three Evidence pages (revenue overview, category trends, fulfilment timing) — written in `dashboards/pages/`, real current Markdoc syntax confirmed via `evidence docs component` (no login needed for that), and `evidence validate` passes. **Not verified live**: Evidence pivoted from a static/no-login tool to "Evidence Studio" mid-project, which needs `evidence login` + a MotherDuck connection (`dashboards/connection.example.yaml`) neither of which can be completed without a person's credentials. See DECISIONS.md.
 

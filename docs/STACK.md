@@ -11,8 +11,7 @@ Where those two pulled in opposite directions, I say so below rather than preten
 | Job | Tool | One-line reason |
 |---|---|---|
 | Transformation | dbt Core | The job is called analytics engineering because of this tool |
-| Warehouse (real) | Snowflake | What the market actually runs on |
-| Warehouse (local) | DuckDB | Keeps the repo runnable after the trial expires |
+| Warehouse | DuckDB (+ MotherDuck) | No account, no cost, runs anywhere; MotherDuck is the same engine, hosted, for the dashboard connection |
 | Loading | dlt | Python library, no infrastructure, code you can read |
 | Data generation | Python + Faker + Pydantic | Total control over how messy the input is |
 | Testing | dbt tests, dbt_utils, dbt_expectations | Three layers of checks, from schema to statistics |
@@ -38,19 +37,15 @@ dbt is the centre of the project, so this one mattered most.
 
 **Verdict:** Core is the safe, portable choice. Being able to explain why Fusion exists is worth more than using it.
 
-### Snowflake *and* DuckDB, not one or the other
+### DuckDB only, not Snowflake as well
 
-This is the biggest architectural decision in the project, and it's the one I'd most want to be asked about.
+Earlier drafts of this project targeted Snowflake and DuckDB together — the classic "prove it on the real thing, develop on the free thing" split, including adapter-dispatch macros to isolate the two dialects' differences. Snowflake itself was dropped from this project; see DECISIONS.md.
 
-Snowflake is what the job market asks for. It's also a 30-day trial with $400 of credits, after which the project either costs money forever or stops working. A dead portfolio project is worthless.
+The reason is the same one the two-adapter design was trying to work around: Snowflake is a 30-day trial with $400 of credits, after which the project either costs money forever or the "prove it on Snowflake" checklist items just sit unchecked indefinitely. That's exactly what happened here — no trial account was ever created, so every Snowflake-shaped line in this repo (a second `profiles.yml` target, `dbt-snowflake`, adapter-dispatch macros with a `snowflake__` variant nothing ever exercised) was speculative work carried for a warehouse the project never actually touched.
 
-DuckDB runs inside the Python process. No server, no credentials, no cost. A reviewer clones the repo and has a working warehouse in seconds.
+DuckDB runs inside the Python process. No server, no credentials, no cost, and every model, test and doc in this repo has actually been built and verified against it. That's the whole warehouse story now: **DuckDB proves the modelling.** MotherDuck (below, and in DECISIONS.md) is the one hosted exception, and only because the dashboard tool requires a live server-side connection — it's the same engine and adapter, not a second warehouse to write dbt for.
 
-So the project targets both. The same models, tests and documentation run against either, selected with a flag. Where the two databases genuinely differ, the difference is isolated in a macro rather than smeared across the models.
-
-The honest cost: supporting two adapters is real extra work, and a couple of Snowflake-specific things (clustering keys, warehouse sizing, `ACCOUNT_USAGE`) simply have no DuckDB equivalent and are skipped locally.
-
-The payoff is threefold and worth the tax. The repo stays alive forever. Local development is fast and free, so I only spend Snowflake credits on runs that are worth spending them on. And writing genuinely cross-adapter dbt is a harder skill than writing dbt for one warehouse, which makes it something to talk about rather than something to apologise for.
+If Snowflake experience needs demonstrating for a job search, that belongs in a project built around Snowflake-only concerns (warehouse sizing, clustering keys, `ACCOUNT_USAGE`) from the start, funded and run inside a live trial window — not bolted onto a project that has to keep working after the trial ends.
 
 ### dlt for loading, not Fivetran or Airbyte
 
@@ -88,45 +83,15 @@ The risk is that generated data reads as fake and unimpressive. The defence is t
 
 ---
 
-## Writing dbt for two warehouses
-
-The decision to target Snowflake and DuckDB together is explained above. This is what it means in practice, because it's the part interviewers push on.
-
-### What DuckDB actually is
+## What DuckDB actually is
 
 An embedded analytical database. Think SQLite, but columnar and vectorised for aggregate queries instead of row-at-a-time transactional ones. It runs inside the Python process. No server, no port, no connection pool.
 
 The entire warehouse is one file, `data/kiezkauf.duckdb`. Delete it and the warehouse is gone; copy it and you've cloned the warehouse. It's gitignored, because it's a binary that changes on every run and `make demo` rebuilds it in seconds.
 
-### Is DuckDB alone enough?
+For this data it's also plenty of engine: the `full` profile is around 500k order lines, and DuckDB comfortably handles hundreds of millions of rows on a laptop with no network round trip to slow it down.
 
-For this data, honestly, yes. The `full` profile is around 500k order lines. DuckDB handles hundreds of millions of rows on a laptop, and at this scale it's *faster* than Snowflake because there's no network round trip.
-
-So Snowflake isn't here for capability. It's here because it's what job ads ask for, and because it has properties DuckDB structurally cannot have: warehouse sizing and auto-suspend, roles and RBAC, clustering keys and partition pruning, zero-copy clones, cost attribution through `ACCOUNT_USAGE`, real concurrency. Those aren't missing features, they're consequences of being a multi-tenant cloud service. A later project in this portfolio is built entirely out of them.
-
-The short version: **DuckDB proves the modelling, Snowflake proves the platform skills.**
-
-### The differences that bite
-
-Four things account for most of the friction.
-
-**Identifier casing.** Snowflake folds unquoted identifiers to uppercase; DuckDB preserves them as written. The fix is discipline rather than cleverness: lowercase everywhere, never quote an identifier.
-
-**Types.** Snowflake's `VARIANT` and `NUMBER` have no exact DuckDB equivalent. Use `JSON` and an explicit `DECIMAL(p, s)`, and never rely on a default precision.
-
-**Date functions.** `dateadd` and `datediff` take different argument styles. Wrap them once in a macro and stop thinking about it.
-
-**Incremental strategies.** `dbt-duckdb` supports the common ones but not identically to `dbt-snowflake`. The merge logic gets tested on both targets in Stage 3, early, rather than discovering the gap at the end.
-
-### The rule for handling them
-
-When the two genuinely differ, isolate the difference in a macro using dbt's adapter dispatch. Do not scatter `{% if target.type == 'snowflake' %}` through the models.
-
-The difference matters. Scattered conditionals mean every model has to be read twice and the divergence spreads silently. Dispatch keeps the models warehouse-agnostic and puts every difference in one reviewable place. It's also a technique most dbt users have never needed, which makes it worth being able to explain.
-
-### If Snowflake becomes inconvenient
-
-**MotherDuck** is hosted DuckDB with a free tier and the same adapter. It doesn't replace Snowflake on a CV, but it's a drop-in third target if the demo ever needs to query something remote rather than local.
+**MotherDuck** is hosted DuckDB, same engine and adapter, with a free tier. It's the one non-local target this project uses, and only because the dashboard (Evidence Studio) needs a live server-side connection to something — see DECISIONS.md. It's not a second dialect to write dbt for.
 
 ---
 
@@ -156,7 +121,7 @@ And **dbt_project_evaluator** sits outside all of this, checking the project rat
 
 **SQLFluff, Ruff and pre-commit.** Formatting arguments are a waste of a code review. These settle it before the commit lands.
 
-**GitHub Actions.** Runs `dbt build` against DuckDB on every pull request, so the badge in the README means something. Later projects add Snowflake pull-request environments using zero-copy clones, but stage one doesn't need that.
+**GitHub Actions.** Runs `dbt build` against DuckDB on every pull request, so the badge in the README means something.
 
 ---
 
@@ -180,6 +145,8 @@ There is one version of this project where Docker earns its place. If the genera
 
 **A semantic layer.** Coming in a later project. Adding it now would mean building metric definitions before the underlying tables have settled, which is the wrong order.
 
+**Snowflake.** It was in an earlier draft of this stack (see DECISIONS.md for why it was dropped): a 30-day trial that either costs money forever or leaves the "prove it on Snowflake" checklist item unchecked indefinitely, which is what actually happened. If Snowflake experience needs proving, that's a project built and funded around Snowflake-only concerns from the start, not a second target bolted onto one that has to keep working for free after the trial ends.
+
 Each of these is a tool I could add. Not adding them is the point.
 
 ---
@@ -190,9 +157,7 @@ Nearly nothing.
 
 DuckDB, dbt Core, dlt, uv and every dbt package here are free and open source. GitHub Actions is free at this volume. Evidence Studio and MotherDuck both have free tiers usable at this scale.
 
-Snowflake is the only line item: a 30-day trial with $400 of credits, then roughly €20 to €30 a month if I keep it warm. The plan is to develop on DuckDB first and only start the trial once there's something worth running, which stretches the window to cover the whole build. After it expires the project keeps working locally.
-
-**Total: under €50 for the entire thing, and plausibly €0.**
+**Total: €0.**
 
 ---
 

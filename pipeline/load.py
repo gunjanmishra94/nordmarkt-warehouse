@@ -71,19 +71,6 @@ def fx_rates_resource(start_date: str, end_date: str):
 def build_destination(target: str):
     if target == "duckdb":
         return dlt.destinations.duckdb("data/kiezkauf.duckdb")
-    if target == "snowflake":
-        return dlt.destinations.snowflake(
-            credentials={
-                "database": os.environ["SNOWFLAKE_DATABASE"],
-                "username": os.environ["SNOWFLAKE_USER"],
-                "host": os.environ["SNOWFLAKE_ACCOUNT"],
-                "warehouse": os.environ.get("SNOWFLAKE_WAREHOUSE", "WH_XS"),
-                "role": os.environ.get("SNOWFLAKE_ROLE", "TRANSFORMER"),
-                "private_key": Path(os.environ["SNOWFLAKE_PRIVATE_KEY_PATH"])
-                .expanduser()
-                .read_text(),
-            }
-        )
     if target == "motherduck":
         database = os.environ.get("MOTHERDUCK_DATABASE", "kiezkauf")
         token = os.environ["MOTHERDUCK_TOKEN"]
@@ -100,7 +87,7 @@ def fx_date_range(data_dir: Path) -> tuple[str, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Load generated Kiezkauf data into the warehouse.")
-    parser.add_argument("--target", choices=["duckdb", "snowflake", "motherduck"], default="duckdb")
+    parser.add_argument("--target", choices=["duckdb", "motherduck"], default="duckdb")
     parser.add_argument("--data-dir", type=Path, default=Path("data/generated"))
     args = parser.parse_args()
 
