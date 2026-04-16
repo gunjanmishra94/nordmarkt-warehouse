@@ -1,7 +1,7 @@
-name: "kiezkauf"
+name: "nordmarkt"
 version: "1.0.0"
 config-version: 2
-profile: "kiezkauf"
+profile: "nordmarkt"
 
 model-paths: ["models"]
 macro-paths: ["macros"]
@@ -14,7 +14,7 @@ clean-targets:
   - "dbt_packages"
 
 models:
-  kiezkauf:
+  nordmarkt:
     staging:
       +materialized: view
     marts:

@@ -5,7 +5,7 @@ templater = dbt
 [sqlfluff:templater:dbt]
 profiles_dir = .
 project_dir = .
-profile = kiezkauf
+profile = nordmarkt
 target = duckdb
 
 [sqlfluff:rules:capitalisation.keywords]

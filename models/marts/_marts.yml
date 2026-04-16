@@ -20,7 +20,7 @@ models:
       - name: is_weekend
         description: True for Saturday and Sunday.
       - name: fiscal_year
-        description: Fiscal year. Kiezkauf's fiscal year is assumed to match the calendar year.
+        description: Fiscal year. Nordmarkt's fiscal year is assumed to match the calendar year.
       - name: fiscal_quarter
         description: Fiscal quarter (1-4), derived from month assuming a calendar-aligned fiscal year.
       - name: is_public_holiday_de

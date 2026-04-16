@@ -1,9 +1,9 @@
-kiezkauf:
+nordmarkt:
   target: duckdb
   outputs:
     duckdb:
       type: duckdb
-      path: data/kiezkauf.duckdb
+      path: data/nordmarkt.duckdb
       schema: main
       threads: 4
 
@@ -13,6 +13,6 @@ kiezkauf:
     # itself); see DECISIONS.md for why this target exists.
     motherduck:
       type: duckdb
-      path: "md:{{ env_var('MOTHERDUCK_DATABASE', 'kiezkauf') }}"
+      path: "md:{{ env_var('MOTHERDUCK_DATABASE', 'nordmarkt') }}"
       schema: main
       threads: 4

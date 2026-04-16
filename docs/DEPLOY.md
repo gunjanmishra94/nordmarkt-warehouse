@@ -1,6 +1,6 @@
 # Deploying the Demo
 
-A portfolio project nobody can look at is a private hobby. This file covers how Kiezkauf gets in front of people, and the configuration to make it happen.
+A portfolio project nobody can look at is a private hobby. This file covers how Nordmarkt gets in front of people, and the configuration to make it happen.
 
 The guiding constraint: **the permanent demo cannot depend on an account only I have.** Everything public runs on DuckDB.
 
@@ -36,7 +36,7 @@ GitHub Actions (on push, and nightly)
 
 I originally leaned Vercel. Once the site is built inside GitHub Actions, though, the host only needs to accept a folder, and Pages does that with no extra account, no extra token, and no third-party service in the loop. Both URLs come from the repo itself.
 
-The one cost is that Pages serves from `username.github.io/kiezkauf-warehouse/`, a subdirectory. dbt's static docs don't care about base paths, so that's no longer a concern now that the dashboard isn't part of this build.
+The one cost is that Pages serves from `username.github.io/nordmarkt-warehouse/`, a subdirectory. dbt's static docs don't care about base paths, so that's no longer a concern now that the dashboard isn't part of this build.
 
 ---
 
@@ -237,7 +237,7 @@ Add a devcontainer and reviewers get an **Open in GitHub Codespaces** button. Th
 
 ```json
 {
-  "name": "Kiezkauf Warehouse",
+  "name": "Nordmarkt Warehouse",
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
   "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && ~/.local/bin/uv sync && curl -fsSL https://evidence.studio/install.sh | sh",
   "forwardPorts": [3000, 8080],

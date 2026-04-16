@@ -1,4 +1,4 @@
-# Kiezkauf Warehouse
+# Nordmarkt Warehouse
 
 An analytics warehouse for a fictional Berlin online marketplace, built with dbt on DuckDB.
 
@@ -8,9 +8,9 @@ This repo is a portfolio project. It exists to show that I can take raw, messy o
 
 ## The idea in plain English
 
-Imagine a company called **Kiezkauf**. It's an online marketplace selling homeware across Germany, Austria and Switzerland. Customers place orders, orders get shipped (or cancelled, or refunded), customers move house, change their subscription tier, and occasionally pay in Swiss francs instead of euros.
+Imagine a company called **Nordmarkt**. It's an online marketplace selling homeware across Germany, Austria and Switzerland. Customers place orders, orders get shipped (or cancelled, or refunded), customers move house, change their subscription tier, and occasionally pay in Swiss francs instead of euros.
 
-Kiezkauf's raw data is a mess, as raw data always is. Events arrive late. The same order sometimes appears twice. Timestamps are recorded in three different timezones. Somebody renamed a column six months ago and nobody wrote it down.
+Nordmarkt's raw data is a mess, as raw data always is. Events arrive late. The same order sometimes appears twice. Timestamps are recorded in three different timezones. Somebody renamed a column six months ago and nobody wrote it down.
 
 The job of this repo is to sit between that mess and the people asking questions like:
 
@@ -47,7 +47,7 @@ Data flows through four stages. Each stage has one job.
   (Python)      (dlt)     (dbt)       (dbt)      (Evidence)
 ```
 
-**Generator** — A Python script that invents Kiezkauf's history: customers, orders, shipments, refunds. It deliberately introduces realistic problems (duplicates, late-arriving events, a mid-history schema change) so the rest of the project has something real to defend against.
+**Generator** — A Python script that invents Nordmarkt's history: customers, orders, shipments, refunds. It deliberately introduces realistic problems (duplicates, late-arriving events, a mid-history schema change) so the rest of the project has something real to defend against.
 
 **Raw** — The generated data lands in the warehouse untouched. Nothing is cleaned here. If the source is ugly, the raw layer is ugly, and that's correct. Loaded with `dlt`, which also pulls real daily exchange rates from a public API so the currency conversion isn't fake.
 
