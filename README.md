@@ -57,7 +57,7 @@ flowchart LR
 
 **Marts** — The actual product. A small number of tables shaped so that a business question maps to a single, obvious query. This is where the thinking lives.
 
-**Dashboard** — A three-page Streamlit app proving the marts answer the questions they claim to answer.
+**Dashboard** — A three-page Streamlit app proving the marts answer the questions they claim to answer. Two builds: a live one on Streamlit Community Cloud, and a fully static one riding on this repo's own GitHub Pages site — see `dashboards/README.md`.
 
 Why each of these tools and not the obvious alternatives: see [STACK.md](docs/STACK.md).
 How it all gets published so people can actually look at it: see [DEPLOY.md](docs/DEPLOY.md).
@@ -147,4 +147,4 @@ Terms that show up in the code, in plain words.
 
 `make demo` generates the data, loads it (twice, for real snapshot/lookback history), and builds the full warehouse against DuckDB — star schema, incremental facts, business-rule and distribution tests, all passing. Revenue-by-category-by-month is answerable in one `SELECT`. dbt docs and the demo site publish to GitHub Pages automatically on every push to `main`.
 
-One thing remains blocked on an account only a person can create, not on anything left to build: the Streamlit dashboard needs to actually be deployed on Streamlit Community Cloud — see `dashboards/README.md`. Everything else, including running the dashboard locally, needs no account.
+The static dashboard (`/dashboard/` on the GitHub Pages site) needs no account and is built by the same CI run as the docs site. One thing remains blocked on an account only a person can create, not on anything left to build: the *live* Streamlit dashboard needs to actually be deployed on Streamlit Community Cloud — see `dashboards/README.md`. Everything else, including running either dashboard locally, needs no account.

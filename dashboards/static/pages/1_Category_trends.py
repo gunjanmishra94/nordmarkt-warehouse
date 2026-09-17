@@ -3,15 +3,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import queries
 import streamlit as st
-from warehouse import query
+from data_source import load
 
 st.set_page_config(page_title="Nordmarkt — Category trends", page_icon="📦", layout="wide")
 
 st.title("Category trends")
 
-category_revenue = query(queries.CATEGORY_REVENUE)
+category_revenue = load("category-revenue.json")
 category_revenue["avg_order_value_eur"] = (
     category_revenue["net_revenue_eur"] / category_revenue["orders"]
 )
@@ -19,7 +18,7 @@ category_revenue["avg_order_value_eur"] = (
 st.subheader("Net revenue by category")
 st.bar_chart(category_revenue.set_index("category")["net_revenue_eur"])
 
-category_revenue_by_month = query(queries.CATEGORY_REVENUE_BY_MONTH)
+category_revenue_by_month = load("category-revenue-by-month.json")
 pivoted = category_revenue_by_month.pivot(
     index="month", columns="category", values="net_revenue_eur"
 )
@@ -38,5 +37,5 @@ st.dataframe(
         }
     ),
     hide_index=True,
-    width="stretch",
+    use_container_width=True,
 )

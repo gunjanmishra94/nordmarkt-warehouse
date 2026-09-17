@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Nordmarkt dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.75.0/build/stlite.css"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.75.0/build/stlite.js"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        stlite.mount(
+          {
+            requirements: ["pandas"],
+            entrypoint: "app.py",
+            files: {
+              "app.py": { url: "app.py" },
+              "data_source.py": { url: "data_source.py" },
+              "pages/1_Category_trends.py": { url: "pages/1_Category_trends.py" },
+              "pages/2_Fulfilment_timing.py": { url: "pages/2_Fulfilment_timing.py" },
+              "data/revenue-totals.json": { url: "data/revenue-totals.json" },
+              "data/revenue-by-month.json": { url: "data/revenue-by-month.json" },
+              "data/revenue-by-currency.json": { url: "data/revenue-by-currency.json" },
+              "data/category-revenue.json": { url: "data/category-revenue.json" },
+              "data/category-revenue-by-month.json": {
+                url: "data/category-revenue-by-month.json",
+              },
+              "data/fulfilment-summary.json": { url: "data/fulfilment-summary.json" },
+              "data/fulfilment-by-month.json": { url: "data/fulfilment-by-month.json" },
+              "data/fulfilment-by-status.json": { url: "data/fulfilment-by-status.json" },
+            },
+          },
+          document.getElementById("root")
+        );
+      });
+    </script>
+  </body>
+</html>

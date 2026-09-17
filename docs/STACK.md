@@ -79,7 +79,9 @@ The risk is that generated data reads as fake and unimpressive. The defence is t
 
 **Streamlit** writes dashboards as plain Python, which is the language everything else non-SQL in this repo is already written in — no new toolchain, and a reviewer reads `dashboards/app.py` the same way they'd read `generator/generate.py`. Deploys free, permanently, on Streamlit Community Cloud.
 
-**Verdict:** Streamlit, because it's free forever (not a trial) and it's the one option here that doesn't ask this all-Python project to also learn an npm-based framework. The cost is that Streamlit needs a live Python process rather than serving static files, so the dashboard rebuilds the warehouse itself on a cold start instead of loading an instantly-static page — see DECISIONS.md for that tradeoff.
+**Verdict:** Streamlit, because it's free forever (not a trial) and it's the one option here that doesn't ask this all-Python project to also learn an npm-based framework. The cost is that Streamlit needs a live Python process rather than serving static files, so the dashboard rebuilds the warehouse itself on a cold start instead of loading an instantly-static page.
+
+**Update:** there's now a second build, `dashboards/static/`, using [stlite](https://github.com/whitphx/stlite) to run the same Streamlit pages entirely in the browser (Pyodide/WebAssembly) — a genuinely static, account-free alternative deployed to GitHub Pages, at the cost of serving a data snapshot from the last CI build rather than a live connection. Both builds exist side by side. Full reasoning in DECISIONS.md.
 
 ---
 
