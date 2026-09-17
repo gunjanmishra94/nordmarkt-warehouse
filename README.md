@@ -38,13 +38,32 @@ The code being clean is table stakes. The judgement is the deliverable.
 
 ---
 
+## The value it creates
+
+Strip away the fictional company and the value is the same as any real analytics-engineering project:
+
+- **One number, not five.** Before this exists, "revenue" means something slightly different in every spreadsheet someone built alone. After it exists, `fct_order_lines.net_revenue_eur` is *the* answer, and anyone can check how it's defined.
+- **Trust that survives a follow-up question.** A dashboard nobody can explain gets ignored the first time a number looks off. Every mart column has a real description, every business rule has a test, and every non-obvious call is written down in `DECISIONS.md` — so "why does this say X" always has an answer.
+- **History that doesn't get silently erased.** `dim_customer` as a Type 2 dimension means a customer moving to a new city doesn't retroactively rewrite where their past orders were shipped. That's the difference between a report you can defend and one you can't.
+- **Late data doesn't mean wrong data.** The incremental models pick up shipments and refunds that arrive after the fact, instead of silently under-counting until the next full rebuild.
+- **A stranger can pick it up.** Someone joining the project — or evaluating it — can clone it, run `make demo`, and understand every table without asking the person who built it. That's the actual test of whether documentation worked.
+
+---
+
 ## How it fits together
 
 Data flows through four stages. Each stage has one job.
 
-```
-  Generator  ->  Raw  ->  Staging  ->  Marts  ->  Dashboard
-  (Python)      (dlt)     (dbt)       (dbt)      (Evidence)
+```mermaid
+flowchart LR
+    G["Generator<br/>(Python)"] -->|invented raw events| R[("Raw<br/>(loaded by dlt)")]
+    FX["Frankfurter API<br/>(daily EUR/CHF rates)"] --> R
+    R --> S["Staging<br/>(dbt)"]
+    S --> M["Marts<br/>(dbt)"]
+    M --> Dash["Dashboard<br/>(Evidence)"]
+
+    classDef stage fill:#eef,stroke:#446,stroke-width:1px;
+    class G,R,S,M,Dash stage;
 ```
 
 **Generator** — A Python script that invents Nordmarkt's history: customers, orders, shipments, refunds. It deliberately introduces realistic problems (duplicates, late-arriving events, a mid-history schema change) so the rest of the project has something real to defend against.
@@ -73,6 +92,15 @@ The marts follow a **star schema**: a few large "fact" tables recording things t
 | `dim_customer` | One row per customer per version of their details | Who bought this, and where did they live *at the time* |
 | `dim_product` | One row per product | What category, what price band, which supplier |
 | `dim_date` | One row per calendar day | Weekday vs weekend, German public holidays, fiscal periods |
+
+```mermaid
+erDiagram
+    dim_customer ||--o{ fct_order_lines : "placed"
+    dim_product  ||--o{ fct_order_lines : "was ordered as"
+    dim_date     ||--o{ fct_order_lines : "occurred on"
+    dim_customer ||--o{ fct_order_fulfilment : "placed"
+    dim_date     ||--o{ fct_order_fulfilment : "occurred on"
+```
 
 Two of these deserve a note.
 
