@@ -92,6 +92,22 @@ Short entries: what was chosen, what was rejected, and why. Added to in the same
 
 **What this costs:** both MotherDuck and Evidence Studio need their own account/token — genuinely new external dependencies this project didn't have before, in the same "configured but can't be proven without an account" bucket Snowflake used to occupy (Snowflake itself was later dropped — see below). Unlike Snowflake, an actual login (`evidence login`, browser-based) is required even to view the dashboard locally — there's no equivalent to `dbt build --target duckdb` that stays entirely offline. The three dashboard pages (`dashboards/pages/*.md`) were written against the real, current Markdoc component syntax (checked via `evidence docs component <name>`, which works without logging in) rather than guessed, but the table addressing (`main.<table>`, matching our dbt schema) is inferred from the MotherDuck connector docs, not verified against a live connection.
 
+**Superseded:** see the entry below — Evidence Studio turned out not to have the free tier this decision assumed, and both it and MotherDuck were dropped.
+
+---
+
+## Dropped Evidence Studio and MotherDuck; the dashboard is now a Streamlit app that queries DuckDB directly
+
+**Chosen:** `dashboards/` is a three-page Streamlit app (`app.py` plus `pages/`) that opens `data/nordmarkt.duckdb` directly with the `duckdb` Python package — no hosted warehouse connector in the loop at all. Since that file is gitignored (a build artifact, not something committed), `warehouse.py` runs the same generator → dlt → dbt pipeline `make demo` runs locally the first time any page is opened in a fresh container, caches the result for the container's lifetime, and every later visitor is served from that cached connection. Deployed on Streamlit Community Cloud, which needs its own account but is a genuine, permanent free tier (1 GB RAM, a handful of concurrent users, sleeps after inactivity) rather than a trial.
+
+**Rejected:** staying on Evidence Studio (see the entry above); Observable Framework, a static-site generator that was actually built out first (data loaders querying DuckDB at CI build time, output riding on the existing GitHub Pages site, zero new accounts) before being dropped in favor of a Python-native dashboard instead of adding an npm/JS toolchain to an otherwise all-Python project.
+
+**Why:** the previous entry's premise was wrong. Checked directly against evidence.dev/pricing while setting the MotherDuck connection up: Evidence Studio has no permanent free tier — a 30-day trial, then $2,500/month (Team plan) or custom Enterprise pricing. That directly breaks this project's guiding constraint (docs/DEPLOY.md: "the permanent demo cannot depend on an account only I have," hosting should stay near €0). Once Evidence was out, MotherDuck went with it — it existed solely to give Evidence Studio a live server-side connection (see docs/STACK.md), and a Python dashboard has no need for a hosted warehouse when it can just open the DuckDB file itself.
+
+**What this costs:** the fully static, account-free story the Observable Framework build briefly had is gone — Streamlit needs its own account on Streamlit Community Cloud, same as Evidence Studio did, just without the trial trap. The real new cost is the cold-start rebuild: the first visitor after the container's been asleep waits tens of seconds for the warehouse to rebuild, rather than getting an instant static page. Accepted because a Python-native dashboard fits the rest of this all-Python-except-SQL project better than either alternative, and "occasionally slow" beats "eventually $2,500/month."
+
+**What this removes:** `profiles.yml`'s `motherduck` target, the `MOTHERDUCK_TOKEN`/`MOTHERDUCK_DATABASE` env vars, `pipeline/load.py --target motherduck`, and the `motherduck` extra on the `dlt` dependency. DuckDB-only, for real this time — the dashboard doesn't change that, since it's still the same single local file everything else in this project builds and reads.
+
 ---
 
 ## Snowflake dropped as a target; DuckDB only
@@ -102,4 +118,4 @@ Short entries: what was chosen, what was rejected, and why. Added to in the same
 
 **Why:** every "prove it on Snowflake" line item across README.md/TASK-PROGRESS.md had sat unchecked since Stage 1 for the same reason: a 30-day trial that nobody had started, because starting it commits to either a live spend or a dead, unproven target once it lapses. Carrying the second-adapter machinery (a config target, dependency, and three macro variants) for a warehouse that was never actually exercised was pure speculative work — dbt's adapter-dispatch pattern is worth demonstrating, but only with a second adapter genuinely in play, not as a placeholder. If Snowflake experience needs demonstrating later, it belongs in a project scoped and funded around Snowflake-only concerns from the start (see docs/STACK.md's "Deliberately not in the stack"), not carried here as unproven config.
 
-**What this doesn't change:** MotherDuck stays, because it's the same DuckDB engine/adapter (needed only because Evidence Studio requires a live server-side connection — see the entry above), not a second dialect to write cross-adapter dbt for.
+**What this doesn't change:** at the time, MotherDuck stayed, because it was the same DuckDB engine/adapter (needed only because Evidence Studio required a live server-side connection — see the entries above). MotherDuck was itself dropped later, once Evidence Studio was — see the dashboard entries above.

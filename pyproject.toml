@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "dbt-core>=1.8",
     "dbt-duckdb>=1.8",
-    "dlt[duckdb,motherduck]>=1.4",
+    "dlt[duckdb]>=1.4",
     "pydantic>=2.7",
     "faker>=25.0",
     "pandas>=2.2",
